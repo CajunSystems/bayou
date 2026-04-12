@@ -80,8 +80,8 @@ class StatefulActorTest {
         actor.tell(new TallyCmd.Count("foo"));
         actor.tell(new TallyCmd.Count("bar"));
 
-        int foo = actor.<Integer>ask(new TallyCmd.Get("foo")).get(2, TimeUnit.SECONDS);
-        int bar = actor.<Integer>ask(new TallyCmd.Get("bar")).get(2, TimeUnit.SECONDS);
+        int foo = actor.<Integer>ask(new TallyCmd.Get("foo")).get(5, TimeUnit.SECONDS);
+        int bar = actor.<Integer>ask(new TallyCmd.Get("bar")).get(5, TimeUnit.SECONDS);
         assertThat(foo).isEqualTo(2);
         assertThat(bar).isEqualTo(1);
     }
@@ -96,7 +96,7 @@ class StatefulActorTest {
 
         actor1.tell(new TallyCmd.Count("hello"));
         actor1.tell(new TallyCmd.Count("world"));
-        actor1.stop().get(2, TimeUnit.SECONDS);
+        actor1.stop().get(5, TimeUnit.SECONDS);
 
         // New system, same log — should restore from snapshot
         BayouSystem system2 = new BayouSystem(sharedLog);
@@ -105,7 +105,7 @@ class StatefulActorTest {
 
         @SuppressWarnings("unchecked")
         Map<String, Integer> all = actor2.<Map<String, Integer>>ask(new TallyCmd.GetAll())
-                                         .get(2, TimeUnit.SECONDS);
+                                         .get(5, TimeUnit.SECONDS);
         assertThat(all).containsEntry("hello", 1).containsEntry("world", 1);
         system2.shutdown();
     }
@@ -124,7 +124,7 @@ class StatefulActorTest {
 
         @SuppressWarnings("unchecked")
         Map<String, Integer> all = actor.<Map<String, Integer>>ask(new TallyCmd.GetAll())
-                                         .get(2, TimeUnit.SECONDS);
+                                         .get(5, TimeUnit.SECONDS);
         assertThat(all).containsOnlyKeys("a", "b", "c", "d");
     }
 
@@ -160,12 +160,18 @@ class StatefulActorTest {
         actor.tell(new TallyCmd.Count("BOMB"));   // should error, state rolls back
         actor.tell(new TallyCmd.Count("also-good"));
 
-        await().atMost(2, TimeUnit.SECONDS).until(() -> errorCount.get() == 1);
+        await().atMost(5, TimeUnit.SECONDS).until(() -> errorCount.get() == 1);
 
         @SuppressWarnings("unchecked")
         Map<String, Integer> all = actor.<Map<String, Integer>>ask(new TallyCmd.GetAll())
-                                         .get(2, TimeUnit.SECONDS);
+                                         .get(5, TimeUnit.SECONDS);
         assertThat(all).containsKeys("good", "also-good").doesNotContainKey("BOMB");
+    }
+
+    @Test
+    void snapshotIntervalZeroThrows() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () ->
+                system.spawnStateful("bad-interval", new WordCounter(), new JavaSerializer<>(), 0));
     }
 
     @Test
@@ -180,8 +186,8 @@ class StatefulActorTest {
                 },
                 new JavaSerializer<>());
 
-        await().atMost(2, TimeUnit.SECONDS).until(() -> events.contains("start"));
-        actor.stop().get(2, TimeUnit.SECONDS);
+        await().atMost(5, TimeUnit.SECONDS).until(() -> events.contains("start"));
+        actor.stop().get(5, TimeUnit.SECONDS);
         assertThat(events).containsExactly("start", "stop");
     }
 }

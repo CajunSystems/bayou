@@ -1,6 +1,8 @@
 package com.cajunsystems.bayou;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A typed reference to a live actor. Obtained from {@link BayouSystem} spawn methods.
@@ -23,6 +25,21 @@ public interface ActorRef<M> {
      * @param <R> the expected reply type (unchecked — callers are responsible for the cast)
      */
     <R> CompletableFuture<R> ask(M message);
+
+    /**
+     * Returns {@code true} if the actor is currently running (not stopped or stopping).
+     * A {@code false} result means messages sent via {@link #tell} will be silently dropped.
+     */
+    boolean isAlive();
+
+    /**
+     * Convenience overload of {@link #ask(Object)} with a built-in timeout.
+     * The returned future completes exceptionally with {@link java.util.concurrent.TimeoutException}
+     * if no reply arrives within the given duration.
+     */
+    default <R> CompletableFuture<R> ask(M message, Duration timeout) {
+        return this.<R>ask(message).orTimeout(timeout.toMillis(), TimeUnit.MILLISECONDS);
+    }
 
     /**
      * Signals the actor to stop after draining its current mailbox.

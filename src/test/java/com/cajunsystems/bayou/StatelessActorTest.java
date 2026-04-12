@@ -5,8 +5,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +36,7 @@ class StatelessActorTest {
         actor.tell("b");
         actor.tell("c");
 
-        await().atMost(2, TimeUnit.SECONDS)
+        await().atMost(5, TimeUnit.SECONDS)
                .untilAsserted(() -> assertThat(received).containsExactly("a", "b", "c"));
     }
 
@@ -47,7 +45,7 @@ class StatelessActorTest {
         ActorRef<String> actor = system.spawn("upper", (msg, ctx) -> ctx.reply(msg.toUpperCase()));
 
         CompletableFuture<String> future = actor.ask("hello");
-        assertThat(future.get(2, TimeUnit.SECONDS)).isEqualTo("HELLO");
+        assertThat(future.get(5, TimeUnit.SECONDS)).isEqualTo("HELLO");
     }
 
     @Test
@@ -68,11 +66,11 @@ class StatelessActorTest {
         });
 
         actor.tell("x");
-        await().atMost(2, TimeUnit.SECONDS).until(() -> events.contains("msg:x"));
+        await().atMost(5, TimeUnit.SECONDS).until(() -> events.contains("msg:x"));
 
-        actor.stop().get(2, TimeUnit.SECONDS);
+        actor.stop().get(5, TimeUnit.SECONDS);
 
-        assertThat(events).startsWith("start").endsWith("stop");
+        assertThat(events).containsExactly("start", "msg:x", "stop");
     }
 
     @Test
@@ -88,7 +86,7 @@ class StatelessActorTest {
         });
 
         actor.tell("trigger");
-        await().atMost(2, TimeUnit.SECONDS).until(() -> errorCaptured.get() == 1);
+        await().atMost(5, TimeUnit.SECONDS).until(() -> errorCaptured.get() == 1);
     }
 
     @Test

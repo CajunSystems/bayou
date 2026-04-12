@@ -28,7 +28,7 @@ abstract class AbstractActorRunner<M> {
 
     private final LinkedBlockingQueue<Envelope<M>> mailbox = new LinkedBlockingQueue<>();
     final BayouContextImpl context;
-    private final AtomicBoolean running = new AtomicBoolean(false);
+    final AtomicBoolean running = new AtomicBoolean(false);
     private final CompletableFuture<Void> stopFuture = new CompletableFuture<>();
 
     AbstractActorRunner(String actorId, BayouSystem system) {
@@ -54,6 +54,7 @@ abstract class AbstractActorRunner<M> {
                 if (env != null) {
                     context.setCurrentEnvelope(env);
                     processEnvelope(env);
+                    context.setCurrentEnvelope(null); // prevent stale reply() calls
                     // If it was an ask and the handler did not reply, fail the future
                     if (env.isAsk() && !env.replyFuture().isDone()) {
                         env.replyFuture().completeExceptionally(
@@ -105,6 +106,10 @@ abstract class AbstractActorRunner<M> {
 
     /** Post-stop hook; called after the message loop exits. */
     protected abstract void cleanup();
+
+    final boolean isAlive() {
+        return running.get();
+    }
 
     // ── ActorRef bridge ──────────────────────────────────────────────────────
 

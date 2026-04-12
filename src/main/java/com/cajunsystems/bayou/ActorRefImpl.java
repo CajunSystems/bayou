@@ -29,6 +29,11 @@ final class ActorRefImpl<M> implements ActorRef<M> {
     }
 
     @Override
+    public boolean isAlive() {
+        return runner.isAlive();
+    }
+
+    @Override
     public CompletableFuture<Void> stop() {
         return runner.stop();
     }
