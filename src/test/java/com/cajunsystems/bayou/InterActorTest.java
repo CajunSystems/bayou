@@ -1,5 +1,6 @@
 package com.cajunsystems.bayou;
 
+import com.cajunsystems.bayou.actor.Actor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,8 @@ class InterActorTest {
 
         // Parent spawns a child actor on its first message, then forwards to it.
         system.spawn("parent", (msg, ctx) -> {
-            ActorRef<String> child = ctx.system().<String>spawn("child", (m, c) -> received.add("child:" + m));
+            Actor<String> childActor = (m, c) -> received.add("child:" + m);
+            ActorRef<String> child = ctx.system().spawn("child", childActor);
             child.tell(msg);
         });
 
