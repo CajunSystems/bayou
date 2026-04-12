@@ -31,7 +31,7 @@ class InterActorTest {
 
         // Parent spawns a child actor on its first message, then forwards to it.
         system.spawn("parent", (msg, ctx) -> {
-            ActorRef<String> child = ctx.system().spawn("child", (m, c) -> received.add("child:" + m));
+            ActorRef<String> child = ctx.system().<String>spawn("child", (m, c) -> received.add("child:" + m));
             child.tell(msg);
         });
 
@@ -52,7 +52,7 @@ class InterActorTest {
 
     @Test
     void lookupReturnsEmptyForUnknownActor() {
-        Optional<ActorRef<?>> ref = system.lookup("no-such-actor");
+        var ref = system.lookup("no-such-actor");
         assertThat(ref).isEmpty();
     }
 
