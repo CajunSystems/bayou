@@ -5,6 +5,7 @@ import com.cajunsystems.bayou.actor.StatefulActor;
 import com.cajunsystems.bayou.actor.Actor;
 import com.cajunsystems.gumbo.api.SharedLog;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -142,20 +143,37 @@ public class BayouSystem implements AutoCloseable {
 
     /**
      * Gracefully stop all actors (draining their mailboxes), then close the shared log.
+     * The log is always closed even if one or more actors fail to stop cleanly.
      */
     public void shutdown() {
         CompletableFuture<?>[] stops = actors.values().stream()
                 .map(ActorRef::stop)
                 .toArray(CompletableFuture[]::new);
-        CompletableFuture.allOf(stops).join();
-        actors.clear();
-        sharedLog.close();
+        try {
+            CompletableFuture.allOf(stops).join();
+        } finally {
+            actors.clear();
+            sharedLog.close();
+        }
     }
 
     /** Alias for {@link #shutdown()} to satisfy {@link AutoCloseable}. */
     @Override
     public void close() {
         shutdown();
+    }
+
+    // ── Lookup ───────────────────────────────────────────────────────────────
+
+    /**
+     * Look up a previously spawned actor by its ID.
+     *
+     * @param actorId the actor's stable identity
+     * @return the ref, or {@link Optional#empty()} if no actor with that ID is registered
+     */
+    @SuppressWarnings("unchecked")
+    public <M> Optional<ActorRef<M>> lookup(String actorId) {
+        return Optional.ofNullable((ActorRef<M>) actors.get(actorId));
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

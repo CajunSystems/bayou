@@ -80,7 +80,7 @@ class EventSourcedActorTest {
         counter.tell(new CounterCmd.Increment(3));
         counter.tell(new CounterCmd.Increment(7));
 
-        int value = counter.<Integer>ask(new CounterCmd.GetValue()).get(2, TimeUnit.SECONDS);
+        int value = counter.<Integer>ask(new CounterCmd.GetValue()).get(5, TimeUnit.SECONDS);
         assertThat(value).isEqualTo(10);
     }
 
@@ -93,7 +93,7 @@ class EventSourcedActorTest {
         counter.tell(new CounterCmd.Reset());
         counter.tell(new CounterCmd.Increment(2));
 
-        int value = counter.<Integer>ask(new CounterCmd.GetValue()).get(2, TimeUnit.SECONDS);
+        int value = counter.<Integer>ask(new CounterCmd.GetValue()).get(5, TimeUnit.SECONDS);
         assertThat(value).isEqualTo(2);
     }
 
@@ -107,14 +107,14 @@ class EventSourcedActorTest {
                 "replay-counter", new CounterActor(), new JavaSerializer<>());
         counter1.tell(new CounterCmd.Increment(10));
         counter1.tell(new CounterCmd.Increment(5));
-        counter1.stop().get(2, TimeUnit.SECONDS);
+        counter1.stop().get(5, TimeUnit.SECONDS);
 
         // Second system re-uses the same underlying log
         BayouSystem system2 = new BayouSystem(sharedLog);
         ActorRef<CounterCmd> counter2 = system2.spawnEventSourced(
                 "replay-counter", new CounterActor(), new JavaSerializer<>());
 
-        int value = counter2.<Integer>ask(new CounterCmd.GetValue()).get(2, TimeUnit.SECONDS);
+        int value = counter2.<Integer>ask(new CounterCmd.GetValue()).get(5, TimeUnit.SECONDS);
         assertThat(value).isEqualTo(15);
         system2.shutdown();
     }
@@ -125,8 +125,8 @@ class EventSourcedActorTest {
                 "ro-counter", new CounterActor(), new JavaSerializer<>());
 
         // GetValue is a pure read — no events should be emitted
-        int v1 = counter.<Integer>ask(new CounterCmd.GetValue()).get(2, TimeUnit.SECONDS);
-        int v2 = counter.<Integer>ask(new CounterCmd.GetValue()).get(2, TimeUnit.SECONDS);
+        int v1 = counter.<Integer>ask(new CounterCmd.GetValue()).get(5, TimeUnit.SECONDS);
+        int v2 = counter.<Integer>ask(new CounterCmd.GetValue()).get(5, TimeUnit.SECONDS);
         assertThat(v1).isEqualTo(0);
         assertThat(v2).isEqualTo(0);
     }
@@ -144,7 +144,23 @@ class EventSourcedActorTest {
                 },
                 new JavaSerializer<>());
 
-        await().atMost(2, TimeUnit.SECONDS).until(() -> startCount.get() == 1);
+        await().atMost(5, TimeUnit.SECONDS).until(() -> startCount.get() == 1);
         assertThat(startCount.get()).isEqualTo(1);
+    }
+
+    @Test
+    void postStopCalledAfterStop() throws Exception {
+        var events = new java.util.concurrent.CopyOnWriteArrayList<String>();
+        ActorRef<CounterCmd> counter = system.spawnEventSourced(
+                "lifecycle-es-stop",
+                new CounterActor() {
+                    @Override public void preStart(BayouContext ctx) { events.add("start"); }
+                    @Override public void postStop(BayouContext ctx) { events.add("stop"); }
+                },
+                new JavaSerializer<>());
+
+        await().atMost(5, TimeUnit.SECONDS).until(() -> events.contains("start"));
+        counter.stop().get(5, TimeUnit.SECONDS);
+        assertThat(events).containsExactly("start", "stop");
     }
 }

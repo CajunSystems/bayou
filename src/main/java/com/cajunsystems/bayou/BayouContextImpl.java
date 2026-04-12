@@ -3,6 +3,8 @@ package com.cajunsystems.bayou;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CompletableFuture;
+
 /**
  * Package-private implementation of {@link BayouContext}.
  * One instance is created per actor runner and reused across all message deliveries;
