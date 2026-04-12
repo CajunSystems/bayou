@@ -31,13 +31,13 @@ class InterActorTest {
         var received = new CopyOnWriteArrayList<String>();
 
         // Parent spawns a child actor on its first message, then forwards to it.
-        system.<String>spawn("parent", (msg, ctx) -> {
+        ActorRef<String> parent = system.spawn("parent", (msg, ctx) -> {
             Actor<String> childActor = (m, c) -> received.add("child:" + m);
             ActorRef<String> child = ctx.system().spawn("child", childActor);
             child.tell(msg);
         });
 
-        system.<String>lookup("parent").orElseThrow().tell("hello");
+        parent.tell("hello");
 
         await().atMost(5, TimeUnit.SECONDS)
                .untilAsserted(() -> assertThat(received).containsExactly("child:hello"));
