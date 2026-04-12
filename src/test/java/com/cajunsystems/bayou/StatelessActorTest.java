@@ -1,6 +1,6 @@
 package com.cajunsystems.bayou;
 
-import com.cajunsystems.bayou.actor.StatelessActor;
+import com.cajunsystems.bayou.actor.Actor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,9 +51,9 @@ class StatelessActorTest {
     }
 
     @Test
-    void lambdaImplementsStatelessActor() {
-        // StatelessActor is @FunctionalInterface — verify lambda works
-        StatelessActor<Integer> noop = (msg, ctx) -> {};
+    void lambdaImplementsActor() {
+        // Actor is @FunctionalInterface — verify lambda works
+        Actor<Integer> noop = (msg, ctx) -> {};
         ActorRef<Integer> ref = system.spawn("noop", noop);
         ref.tell(42); // should not throw
     }
@@ -61,7 +61,7 @@ class StatelessActorTest {
     @Test
     void preStartAndPostStopAreCalled() throws Exception {
         var events = new CopyOnWriteArrayList<String>();
-        ActorRef<String> actor = system.spawn("lifecycle", new StatelessActor<>() {
+        ActorRef<String> actor = system.spawn("lifecycle", new Actor<>() {
             @Override public void handle(String msg, BayouContext ctx) { events.add("msg:" + msg); }
             @Override public void preStart(BayouContext ctx)  { events.add("start"); }
             @Override public void postStop(BayouContext ctx)  { events.add("stop"); }
@@ -78,7 +78,7 @@ class StatelessActorTest {
     @Test
     void errorInHandlerCallsOnError() throws Exception {
         var errorCaptured = new AtomicInteger(0);
-        ActorRef<String> actor = system.spawn("faulty", new StatelessActor<>() {
+        ActorRef<String> actor = system.spawn("faulty", new Actor<>() {
             @Override public void handle(String msg, BayouContext ctx) {
                 throw new RuntimeException("boom");
             }
