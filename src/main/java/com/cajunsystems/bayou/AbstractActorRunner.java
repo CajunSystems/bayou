@@ -1,0 +1,114 @@
+package com.cajunsystems.bayou;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * Base virtual-thread actor runner.
+ *
+ * <p>Lifecycle:
+ * <ol>
+ *   <li>{@link #initialize()} — called once in the actor thread before the message loop.
+ *       Subclasses replay logs / restore snapshots here.</li>
+ *   <li>Message loop — polls the mailbox and calls {@link #processEnvelope(Envelope)}.</li>
+ *   <li>{@link #cleanup()} — called once after the loop exits; subclasses flush snapshots here.</li>
+ * </ol>
+ *
+ * <p>Stopping is graceful: setting {@code running = false} lets the loop drain the remaining
+ * mailbox before calling {@link #cleanup()}.
+ *
+ * @param <M> message type
+ */
+abstract class AbstractActorRunner<M> {
+
+    final String actorId;
+    private final BayouSystem system;
+
+    private final LinkedBlockingQueue<Envelope<M>> mailbox = new LinkedBlockingQueue<>();
+    final BayouContextImpl context;
+    private final AtomicBoolean running = new AtomicBoolean(false);
+    private final CompletableFuture<Void> stopFuture = new CompletableFuture<>();
+
+    AbstractActorRunner(String actorId, BayouSystem system) {
+        this.actorId = actorId;
+        this.system = system;
+        this.context = new BayouContextImpl(actorId, system);
+    }
+
+    // ── Lifecycle ────────────────────────────────────────────────────────────
+
+    final void start() {
+        running.set(true);
+        Thread.ofVirtual()
+                .name("bayou-" + actorId)
+                .start(this::loop);
+    }
+
+    private void loop() {
+        try {
+            initialize();
+            while (running.get() || !mailbox.isEmpty()) {
+                Envelope<M> env = mailbox.poll(100, TimeUnit.MILLISECONDS);
+                if (env != null) {
+                    context.setCurrentEnvelope(env);
+                    processEnvelope(env);
+                    // If it was an ask and the handler did not reply, fail the future
+                    if (env.isAsk() && !env.replyFuture().isDone()) {
+                        env.replyFuture().completeExceptionally(
+                                new IllegalStateException(
+                                        "Actor '" + actorId + "' did not call reply() for ask message: "
+                                                + env.payload()));
+                    }
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            context.logger().error("Actor '{}' terminated unexpectedly", actorId, e);
+        } finally {
+            try {
+                cleanup();
+            } catch (Exception e) {
+                context.logger().error("Error during cleanup for actor '{}'", actorId, e);
+            }
+            stopFuture.complete(null);
+        }
+    }
+
+    // ── Messaging ────────────────────────────────────────────────────────────
+
+    final void tell(M message) {
+        mailbox.offer(Envelope.tell(message));
+    }
+
+    @SuppressWarnings("unchecked")
+    final <R> CompletableFuture<R> ask(M message) {
+        Envelope<M> env = Envelope.ask(message);
+        mailbox.offer(env);
+        return (CompletableFuture<R>) env.replyFuture();
+    }
+
+    final CompletableFuture<Void> stop() {
+        running.set(false);
+        return stopFuture;
+    }
+
+    // ── Template methods ─────────────────────────────────────────────────────
+
+    /** Subclasses replay events or restore snapshots here (runs inside the actor thread). */
+    protected abstract void initialize();
+
+    /** Process one envelope; errors are handled internally by each subclass. */
+    protected abstract void processEnvelope(Envelope<M> envelope);
+
+    /** Post-stop hook; called after the message loop exits. */
+    protected abstract void cleanup();
+
+    // ── ActorRef bridge ──────────────────────────────────────────────────────
+
+    final ActorRef<M> toActorRef() {
+        return new ActorRefImpl<>(this);
+    }
+}
