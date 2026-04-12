@@ -2,7 +2,7 @@ package com.cajunsystems.bayou;
 
 import com.cajunsystems.bayou.actor.EventSourcedActor;
 import com.cajunsystems.bayou.actor.StatefulActor;
-import com.cajunsystems.bayou.actor.StatelessActor;
+import com.cajunsystems.bayou.actor.Actor;
 import com.cajunsystems.gumbo.api.SharedLog;
 
 import java.util.concurrent.CompletableFuture;
@@ -52,11 +52,11 @@ public class BayouSystem implements AutoCloseable {
      * Spawn a stateless actor. No log interaction occurs on behalf of this actor.
      *
      * @param actorId   unique identity within this system
-     * @param actor     handler implementation (may be a lambda)
+     * @param actor     {@link Actor} implementation (may be a lambda)
      * @param <M>       message type
      * @return a reference for sending messages
      */
-    public <M> ActorRef<M> spawn(String actorId, StatelessActor<M> actor) {
+    public <M> ActorRef<M> spawn(String actorId, Actor<M> actor) {
         checkNotDuplicate(actorId);
         var runner = new StatelessActorRunner<>(actorId, this, actor);
         runner.start();

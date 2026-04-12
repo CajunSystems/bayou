@@ -1,15 +1,15 @@
 package com.cajunsystems.bayou;
 
-import com.cajunsystems.bayou.actor.StatelessActor;
+import com.cajunsystems.bayou.actor.Actor;
 
 /**
- * Runner for {@link StatelessActor}. Does not interact with the gumbo log.
+ * Runner for {@link Actor}. Does not interact with the gumbo log.
  */
 final class StatelessActorRunner<M> extends AbstractActorRunner<M> {
 
-    private final StatelessActor<M> actor;
+    private final Actor<M> actor;
 
-    StatelessActorRunner(String actorId, BayouSystem system, StatelessActor<M> actor) {
+    StatelessActorRunner(String actorId, BayouSystem system, Actor<M> actor) {
         super(actorId, system);
         this.actor = actor;
     }
