@@ -31,7 +31,7 @@ class InterActorTest {
         var received = new CopyOnWriteArrayList<String>();
 
         // Parent spawns a child actor on its first message, then forwards to it.
-        system.spawn("parent", (msg, ctx) -> {
+        system.<String>spawn("parent", (msg, ctx) -> {
             Actor<String> childActor = (m, c) -> received.add("child:" + m);
             ActorRef<String> child = ctx.system().spawn("child", childActor);
             child.tell(msg);
