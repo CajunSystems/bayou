@@ -133,7 +133,7 @@ class StatefulActorTest {
         var errorCount = new AtomicInteger(0);
 
         ActorRef<TallyCmd> actor = system.spawnStateful("error-state",
-                new StatefulActor<>() {
+                new StatefulActor<Tally, TallyCmd>() {
                     @Override
                     public Tally initialState() { return new Tally(); }
 
@@ -178,7 +178,7 @@ class StatefulActorTest {
     void preStartAndPostStopCalled() throws Exception {
         var events = new java.util.concurrent.CopyOnWriteArrayList<String>();
         ActorRef<TallyCmd> actor = system.spawnStateful("lifecycle-sf",
-                new StatefulActor<>() {
+                new StatefulActor<Tally, TallyCmd>() {
                     @Override public Tally initialState() { return new Tally(); }
                     @Override public Tally reduce(Tally s, TallyCmd m, BayouContext c) { return s; }
                     @Override public void preStart(BayouContext ctx)  { events.add("start"); }
