@@ -114,4 +114,46 @@ class DeathSpiralTest {
         ActorRef<String> probe = system.spawn("probe", (msg, ctx) -> {});
         assertThat(probe.isAlive()).isTrue();
     }
+
+    @Test
+    void allForOneEscalatesAfterExceedingRestartWindow() {
+        // Window: 2 restarts in 10 seconds for AllForOneStrategy
+        // Actor A always crashes on preStart. Actor B is a silent sibling.
+        // A crashes 3 times (initial + 2 restarts) → 3rd crash triggers ESCALATE.
+        // Supervisor dies.
+        var aPreStarts = new AtomicInteger(0);
+
+        Actor<String> actorA = new Actor<>() {
+            public void handle(String msg, BayouContext ctx) {}
+            public void preStart(BayouContext ctx) {
+                aPreStarts.incrementAndGet();
+                throw new RuntimeException("A always crashes");
+            }
+        };
+
+        Actor<String> actorB = new Actor<>() {
+            public void handle(String msg, BayouContext ctx) {}
+        };
+
+        SupervisorRef sup = system.spawnSupervisor("sup", new SupervisorActor() {
+            public List<ChildSpec> children() {
+                return List.of(
+                    ChildSpec.stateless("a", actorA),
+                    ChildSpec.stateless("b", actorB)
+                );
+            }
+            public SupervisionStrategy strategy() {
+                return new AllForOneStrategy(new RestartWindow(2, Duration.ofSeconds(10)));
+            }
+        });
+
+        // Supervisor should die after maxRestarts exceeded
+        await().atMost(10, TimeUnit.SECONDS).until(() -> !sup.isAlive());
+
+        // A crashed 3 times: initial + 2 restarts; 3rd crash triggers ESCALATE
+        assertThat(aPreStarts.get()).isEqualTo(3);
+        // Supervisor is dead; both children unregistered
+        assertThat(system.lookup("a")).isEmpty();
+        assertThat(system.lookup("b")).isEmpty();
+    }
 }
