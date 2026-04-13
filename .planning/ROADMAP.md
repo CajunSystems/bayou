@@ -4,7 +4,7 @@ Add Erlang/Akka-style supervisor trees to Bayou. Six phases taking the system fr
 
 ## Phases
 
-### Phase 1: Crash Signal Infrastructure
+### ~~Phase 1: Crash Signal Infrastructure~~ ✓ Complete
 **Goal:** Runners signal their supervisor when they crash rather than dying silently.
 
 - Add nullable `supervisorRef` field to `AbstractActorRunner`
