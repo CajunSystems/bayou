@@ -50,7 +50,34 @@ final class SupervisorRunner extends AbstractActorRunner<ChildCrash> {
         RestartDecision decision = strategy.decide(crash.actorId(), crash.cause());
         logger.info("Supervisor '{}': child '{}' crashed ({}), decision: {}",
                 actorId, crash.actorId(), crash.cause().getMessage(), decision);
-        // Phase 4 will act on the decision (restart / stop / escalate)
+
+        switch (decision) {
+            case RESTART -> {
+                logger.info("Supervisor '{}': restarting child '{}'", actorId, crash.actorId());
+                crash.runner().restart();
+            }
+            case RESTART_ALL -> {
+                logger.info("Supervisor '{}': all-for-one restart triggered by '{}'",
+                        actorId, crash.actorId());
+                // Stop all alive siblings (crashed runner already has running=false)
+                CompletableFuture<?>[] stops = childRunners.stream()
+                        .filter(AbstractActorRunner::isAlive)
+                        .map(AbstractActorRunner::stop)
+                        .toArray(CompletableFuture[]::new);
+                CompletableFuture.allOf(stops).join();
+                // Restart all children in declaration order (including crashed one)
+                for (AbstractActorRunner<?> runner : childRunners) {
+                    runner.restart();
+                }
+                logger.info("Supervisor '{}': all-for-one restart complete", actorId);
+            }
+            case STOP ->
+                logger.info("Supervisor '{}': child '{}' permanently stopped",
+                        actorId, crash.actorId());
+            case ESCALATE ->
+                logger.warn("Supervisor '{}': ESCALATE not yet implemented — " +
+                        "treating child '{}' as permanently stopped", actorId, crash.actorId());
+        }
     }
 
     @Override

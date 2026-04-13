@@ -95,21 +95,23 @@ class SupervisorActorTest {
     @Test
     void supervisorReceivesCrashSignalFromChild() throws Exception {
         var decisions = new CopyOnWriteArrayList<RestartDecision>();
+        var crashed = new java.util.concurrent.atomic.AtomicBoolean(false);
 
-        // preStart() throwing crashes the loop (propagates past processEnvelope's catch)
-        Actor<String> crashingActor = new Actor<>() {
+        // Crash only once — on restart preStart() succeeds, preventing an infinite loop
+        Actor<String> crashOnceActor = new Actor<>() {
             public void handle(String msg, BayouContext ctx) {}
             public void preStart(BayouContext ctx) {
-                throw new RuntimeException("preStart crash");
+                if (crashed.compareAndSet(false, true)) {
+                    throw new RuntimeException("preStart crash");
+                }
             }
         };
 
         system.spawnSupervisor("sup", new SupervisorActor() {
             public List<ChildSpec> children() {
-                return List.of(ChildSpec.stateless("crasher", crashingActor));
+                return List.of(ChildSpec.stateless("crasher", crashOnceActor));
             }
             public SupervisionStrategy strategy() {
-                // Capture decisions without affecting the decision
                 return (childId, cause) -> {
                     RestartDecision d = new OneForOneStrategy(RestartWindow.UNLIMITED)
                             .decide(childId, cause);
