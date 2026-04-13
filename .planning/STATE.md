@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 3: Supervisor Actor** — not started
+**Phase 3: Supervisor Actor** — planned, ready to execute
 
 ## Phase Status
 
@@ -10,14 +10,14 @@
 |---|---|---|
 | 1 — Crash Signal Infrastructure | complete | 01-01-SUMMARY.md |
 | 2 — Supervision Strategy Model | complete | 02-01-SUMMARY.md |
-| 3 — Supervisor Actor | not started | |
+| 3 — Supervisor Actor | planned | 1 plan: 03-01-PLAN.md |
 | 4 — Restart Mechanics | not started | |
 | 5 — Death Spiral Guard | not started | |
 | 6 — Testing & Polish | not started | |
 
 ## Last Action
 
-Phase 2 complete — 2026-04-13 (38 tests passing)
+Phase 3 planned — 2026-04-13
 
 ## Accumulated Decisions
 
@@ -29,7 +29,13 @@ Phase 2 complete — 2026-04-13 (38 tests passing)
 - `SupervisionStrategy` is `@FunctionalInterface` — supports lambda custom strategies
 - Strategy `decide()` always returns constant for now — Phase 5 adds spiral counting
 - `RestartWindow` stored in strategy constructor — signature stable for Phase 5
+- `SupervisorRunner extends AbstractActorRunner<ChildCrash>` — mailbox typed to crash signals
+- `SupervisorRef extends ActorRef<Void>` — supervisors not user-messageable; stored in BayouSystem.actors
+- `ChildSpec` sealed interface with 3 package-private record impls — factory methods only
+- Phase 3 `processEnvelope()` calls `strategy.decide()` + logs only — Phase 4 adds restart action
 
 ## Active Plan
 
-None. Run `/gsd:plan-phase 3` to continue.
+`.planning/phases/03-supervisor-actor/03-01-PLAN.md`
+
+Run `/gsd:execute-plan 3` to begin execution.
