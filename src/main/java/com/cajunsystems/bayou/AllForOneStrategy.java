@@ -1,5 +1,10 @@
 package com.cajunsystems.bayou;
 
+import java.time.Instant;
+import java.util.ArrayDeque;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Supervision strategy that restarts all children when any one crashes.
  *
@@ -14,6 +19,7 @@ package com.cajunsystems.bayou;
 public final class AllForOneStrategy implements SupervisionStrategy {
 
     private final RestartWindow restartWindow;
+    private final Map<String, ArrayDeque<Instant>> restartHistory = new HashMap<>();
 
     public AllForOneStrategy(RestartWindow restartWindow) {
         if (restartWindow == null) throw new IllegalArgumentException("restartWindow must not be null");
@@ -25,13 +31,19 @@ public final class AllForOneStrategy implements SupervisionStrategy {
         return restartWindow;
     }
 
-    /**
-     * Always returns {@link RestartDecision#RESTART_ALL} for now.
-     * Phase 5 (death spiral guard) will add restart-count tracking and
-     * return {@link RestartDecision#ESCALATE} when the window is exceeded.
-     */
     @Override
     public RestartDecision decide(String childId, Throwable cause) {
+        if (restartWindow == RestartWindow.UNLIMITED) return RestartDecision.RESTART_ALL;
+        ArrayDeque<Instant> history =
+            restartHistory.computeIfAbsent(childId, k -> new ArrayDeque<>());
+        if (!restartWindow.within().isZero()) {
+            Instant cutoff = Instant.now().minus(restartWindow.within());
+            history.removeIf(t -> t.isBefore(cutoff));
+        }
+        if (history.size() >= restartWindow.maxRestarts()) {
+            return RestartDecision.ESCALATE;
+        }
+        history.addLast(Instant.now());
         return RestartDecision.RESTART_ALL;
     }
 }
