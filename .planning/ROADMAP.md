@@ -16,7 +16,7 @@ Add Erlang/Akka-style supervisor trees to Bayou. Six phases taking the system fr
 
 ---
 
-### Phase 2: Supervision Strategy Model
+### ~~Phase 2: Supervision Strategy Model~~ ✓ Complete
 **Goal:** Public API types that represent supervision decisions — no behavior yet, just the vocabulary.
 
 - `SupervisionStrategy` interface with `RestartDecision decide(String childId, Throwable cause)`
