@@ -1,0 +1,12 @@
+{
+  "workflow": {
+    "mode": "interactive",
+    "depth": "standard"
+  },
+  "depth_guidelines": {
+    "phases": "5-8",
+    "plans_per_phase": "3-5",
+    "tasks_per_plan": "2-3"
+  },
+  "project": "Bayou — Supervision"
+}
