@@ -1,6 +1,7 @@
 package com.cajunsystems.bayou;
 
 import com.cajunsystems.bayou.actor.Actor;
+import com.cajunsystems.bayou.actor.EventSourcedActor;
 import com.cajunsystems.bayou.actor.StatefulActor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +28,25 @@ class RestartMechanicsTest {
 
     /** State: running sum. reduce(n) adds n and replies with the new total. */
     record Sum(int value) implements Serializable {}
+
+    // Minimal event-sourced counter for supervised restart test.
+    // State: running sum. handle(n) adds n and replies with new total.
+    record SumState(int value) implements Serializable {}
+
+    sealed interface SumEvent extends Serializable {
+        record Added(int n) implements SumEvent {}
+    }
+
+    static class SumEventActor implements EventSourcedActor<SumState, SumEvent, Integer> {
+        @Override public SumState initialState() { return new SumState(0); }
+        @Override public List<SumEvent> handle(SumState state, Integer n, BayouContext ctx) {
+            ctx.reply(state.value() + n);
+            return List.of(new SumEvent.Added(n));
+        }
+        @Override public SumState apply(SumState state, SumEvent event) {
+            return new SumState(state.value() + ((SumEvent.Added) event).n());
+        }
+    }
 
     static class SumActor implements StatefulActor<Sum, Integer> {
         @Override public Sum initialState() { return new Sum(0); }
@@ -212,5 +232,48 @@ class RestartMechanicsTest {
 
         await().atMost(5, TimeUnit.SECONDS)
                .untilAsserted(() -> assertThat(received).containsExactly("ping", "pong"));
+    }
+
+    @Test
+    void eventSourcedOneForOneRestartReplaysEventLog() throws Exception {
+        var sharedLog = system.sharedLog();
+
+        // Phase 1: standalone actor builds event log (value = 5 + 3 = 8)
+        ActorRef<Integer> seeder = system.spawnEventSourced("ctr", new SumEventActor(), new JavaSerializer<>());
+        seeder.tell(5);
+        seeder.tell(3);
+        await().atMost(5, TimeUnit.SECONDS)
+               .untilAsserted(() -> assertThat(seeder.<Integer>ask(0).get(5, TimeUnit.SECONDS)).isEqualTo(8));
+        seeder.stop().get(5, TimeUnit.SECONDS);
+
+        // Phase 2: supervised on same log — crash on first preStart
+        var preStartCalls = new AtomicInteger(0);
+        BayouSystem system2 = new BayouSystem(sharedLog);
+
+        system2.spawnSupervisor("sup", new SupervisorActor() {
+            public List<ChildSpec> children() {
+                return List.of(ChildSpec.eventSourced("ctr", new SumEventActor() {
+                    @Override
+                    public void preStart(BayouContext ctx) {
+                        if (preStartCalls.incrementAndGet() == 1) {
+                            throw new RuntimeException("crash before first message");
+                        }
+                    }
+                }, new JavaSerializer<>()));
+            }
+            public SupervisionStrategy strategy() {
+                return new OneForOneStrategy(RestartWindow.UNLIMITED);
+            }
+        });
+
+        // Wait for restart (preStartCalls reaches 2)
+        await().atMost(5, TimeUnit.SECONDS).until(() -> preStartCalls.get() >= 2);
+
+        // State replayed from event log: 0 + 5 + 3 = 8; ask with 0 → reply = 8
+        ActorRef<Integer> ctr = system2.<Integer>lookup("ctr").orElseThrow();
+        int replayed = ctr.<Integer>ask(0).get(5, TimeUnit.SECONDS);
+        assertThat(replayed).isEqualTo(8);
+
+        system2.shutdown();
     }
 }
