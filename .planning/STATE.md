@@ -2,13 +2,13 @@
 
 ## Current Phase
 
-**Phase 1: Crash Signal Infrastructure** — not started
+**Phase 1: Crash Signal Infrastructure** — planned, ready to execute
 
 ## Phase Status
 
 | Phase | Status | Notes |
 |---|---|---|
-| 1 — Crash Signal Infrastructure | not started | |
+| 1 — Crash Signal Infrastructure | planned | 1 plan: 01-01-PLAN.md |
 | 2 — Supervision Strategy Model | not started | |
 | 3 — Supervisor Actor | not started | |
 | 4 — Restart Mechanics | not started | |
@@ -17,8 +17,10 @@
 
 ## Last Action
 
-Roadmap created — 2026-04-13
+Phase 1 planned — 2026-04-13
 
 ## Active Plan
 
-None yet. Run `/gsd:plan-phase 1` to begin.
+`.planning/phases/01-crash-signal-infrastructure/01-01-PLAN.md`
+
+Run `/gsd:execute-plan 1` to begin execution.
