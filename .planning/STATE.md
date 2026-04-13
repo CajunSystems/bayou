@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 4: Restart Mechanics** — not started
+**Phase 4: Restart Mechanics** — planned, ready to execute
 
 ## Phase Status
 
@@ -11,13 +11,13 @@
 | 1 — Crash Signal Infrastructure | complete | 01-01-SUMMARY.md |
 | 2 — Supervision Strategy Model | complete | 02-01-SUMMARY.md |
 | 3 — Supervisor Actor | complete | 03-01-SUMMARY.md |
-| 4 — Restart Mechanics | not started | |
+| 4 — Restart Mechanics | planned | 1 plan: 04-01-PLAN.md |
 | 5 — Death Spiral Guard | not started | |
 | 6 — Testing & Polish | not started | |
 
 ## Last Action
 
-Phase 3 complete — 2026-04-13
+Phase 4 planned — 2026-04-13
 
 ## Accumulated Decisions
 
@@ -35,7 +35,13 @@ Phase 3 complete — 2026-04-13
 - Phase 3 `processEnvelope()` calls `strategy.decide()` + logs only — Phase 4 adds restart action
 - `context.system()` used in SupervisorRunner to access BayouSystem (avoids extra field)
 - `SupervisorRunner.createChildRunner()` uses unchecked casts with `@SuppressWarnings` — safe because type params are consistent within each spec object
+- `restart()` uses `running.set(true)` + fresh `stopFuture` + new virtual thread — no state cleared, mailbox preserved
+- `running.set(false)` added to crash catch block — fixes `isAlive()` returning `true` after crash
+- `stopFuture` is `private volatile` (not final) — allows `restart()` to replace it
+- ESCALATE in Phase 4 is a no-op stub (log warning, treat as STOP) — Phase 5 implements actual escalation
 
 ## Active Plan
 
-None — Phase 3 complete. Run `/gsd:plan-phase 4` to plan Phase 4.
+`.planning/phases/04-restart-mechanics/04-01-PLAN.md`
+
+Run `/gsd:execute-plan 4` to begin execution.
