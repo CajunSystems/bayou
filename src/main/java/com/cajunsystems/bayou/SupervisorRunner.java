@@ -3,9 +3,9 @@ package com.cajunsystems.bayou;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Package-private runner for a supervised group of actors.
@@ -21,7 +21,8 @@ final class SupervisorRunner extends AbstractActorRunner<ChildCrash> {
 
     private final SupervisionStrategy strategy;
     private final List<ChildSpec> childSpecs;
-    private final List<AbstractActorRunner<?>> childRunners = new ArrayList<>();
+    // CopyOnWriteArrayList: supervisor thread reads during crash handling; any thread may write via spawnChild()
+    private final List<AbstractActorRunner<?>> childRunners = new CopyOnWriteArrayList<>();
     private final Logger logger;
 
     SupervisorRunner(String actorId, BayouSystem system,
@@ -38,11 +39,7 @@ final class SupervisorRunner extends AbstractActorRunner<ChildCrash> {
     @Override
     protected void initialize() {
         for (ChildSpec spec : childSpecs) {
-            AbstractActorRunner<?> runner = createChildRunner(spec);
-            runner.setCrashListener(crash -> this.tell(crash));
-            runner.start();
-            childRunners.add(runner);
-            context.system().registerActor(spec.actorId(), runner.toActorRef());
+            startAndRegister(spec);
         }
         logger.info("Supervisor '{}' started {} children", actorId, childRunners.size());
     }
@@ -63,6 +60,29 @@ final class SupervisorRunner extends AbstractActorRunner<ChildCrash> {
                 .map(AbstractActorRunner::stop)
                 .toArray(CompletableFuture[]::new);
         CompletableFuture.allOf(stops).join();
+    }
+
+    // ── Dynamic child spawning ─────────────────────────────────────────────────
+
+    /**
+     * Spawn a new child under this supervisor at runtime.
+     * Thread-safe: may be called from any thread.
+     */
+    ActorRef<?> spawnChild(ChildSpec spec) {
+        ActorRef<?> ref = startAndRegister(spec);
+        logger.info("Supervisor '{}': dynamically spawned child '{}'", actorId, spec.actorId());
+        return ref;
+    }
+
+    // ── Internal helpers ───────────────────────────────────────────────────────
+
+    private ActorRef<?> startAndRegister(ChildSpec spec) {
+        AbstractActorRunner<?> runner = createChildRunner(spec);
+        runner.setCrashListener(crash -> this.tell(crash));
+        runner.start();
+        childRunners.add(runner);
+        context.system().registerActor(spec.actorId(), runner.toActorRef());
+        return runner.toActorRef();
     }
 
     // ── Child factory ──────────────────────────────────────────────────────────

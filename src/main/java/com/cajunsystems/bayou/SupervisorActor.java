@@ -29,11 +29,13 @@ import java.util.List;
 public interface SupervisorActor {
 
     /**
-     * Declares the children this supervisor owns. Called once when the supervisor starts.
-     * The returned list defines the children's declaration order, which is used for
-     * all-for-one restarts.
+     * Declares the children started when the supervisor starts.
+     * The returned list defines declaration order, which is used for all-for-one restarts.
+     *
+     * <p>Defaults to an empty list — override when initial children are known at spawn time.
+     * Children can always be added later via {@link SupervisorRef#spawnChild(ChildSpec)}.
      */
-    List<ChildSpec> children();
+    default List<ChildSpec> children() { return List.of(); }
 
     /**
      * The supervision strategy applied when a child crashes.

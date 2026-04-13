@@ -39,4 +39,9 @@ final class SupervisorActorRefImpl implements SupervisorRef {
     public CompletableFuture<Void> stop() {
         return runner.stop();
     }
+
+    @Override
+    public ActorRef<?> spawnChild(ChildSpec spec) {
+        return runner.spawnChild(spec);
+    }
 }
