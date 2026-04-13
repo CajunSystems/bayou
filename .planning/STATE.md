@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 3: Supervisor Actor** — planned, ready to execute
+**Phase 4: Restart Mechanics** — not started
 
 ## Phase Status
 
@@ -10,14 +10,14 @@
 |---|---|---|
 | 1 — Crash Signal Infrastructure | complete | 01-01-SUMMARY.md |
 | 2 — Supervision Strategy Model | complete | 02-01-SUMMARY.md |
-| 3 — Supervisor Actor | planned | 1 plan: 03-01-PLAN.md |
+| 3 — Supervisor Actor | complete | 03-01-SUMMARY.md |
 | 4 — Restart Mechanics | not started | |
 | 5 — Death Spiral Guard | not started | |
 | 6 — Testing & Polish | not started | |
 
 ## Last Action
 
-Phase 3 planned — 2026-04-13
+Phase 3 complete — 2026-04-13
 
 ## Accumulated Decisions
 
@@ -33,9 +33,9 @@ Phase 3 planned — 2026-04-13
 - `SupervisorRef extends ActorRef<Void>` — supervisors not user-messageable; stored in BayouSystem.actors
 - `ChildSpec` sealed interface with 3 package-private record impls — factory methods only
 - Phase 3 `processEnvelope()` calls `strategy.decide()` + logs only — Phase 4 adds restart action
+- `context.system()` used in SupervisorRunner to access BayouSystem (avoids extra field)
+- `SupervisorRunner.createChildRunner()` uses unchecked casts with `@SuppressWarnings` — safe because type params are consistent within each spec object
 
 ## Active Plan
 
-`.planning/phases/03-supervisor-actor/03-01-PLAN.md`
-
-Run `/gsd:execute-plan 3` to begin execution.
+None — Phase 3 complete. Run `/gsd:plan-phase 4` to plan Phase 4.

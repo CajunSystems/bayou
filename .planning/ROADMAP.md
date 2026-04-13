@@ -30,7 +30,7 @@ Add Erlang/Akka-style supervisor trees to Bayou. Six phases taking the system fr
 
 ---
 
-### Phase 3: Supervisor Actor
+### ~~Phase 3: Supervisor Actor~~ ✓ Complete
 **Goal:** A concrete supervisor type that holds children and reacts to crashes.
 
 - `SupervisorActor` interface (user-facing): declares children + chooses strategy
