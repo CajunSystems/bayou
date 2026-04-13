@@ -13,7 +13,7 @@ import com.cajunsystems.bayou.actor.StatefulActor;
  * ChildSpec.eventSourced("ledger", new MyEventSourcedActor(), new JavaSerializer<>())
  * }</pre>
  */
-public sealed interface ChildSpec permits StatelessChildSpec, StatefulChildSpec, EventSourcedChildSpec {
+public sealed interface ChildSpec permits StatelessChildSpec, StatefulChildSpec, EventSourcedChildSpec, SupervisorChildSpec {
 
     /** The unique actor ID for this child within the system. */
     String actorId();
@@ -45,5 +45,22 @@ public sealed interface ChildSpec permits StatelessChildSpec, StatefulChildSpec,
                                               EventSourcedActor<S, E, M> actor,
                                               BayouSerializer<E> eventSerializer) {
         return new EventSourcedChildSpec<>(actorId, actor, eventSerializer);
+    }
+
+    /**
+     * Creates a spec for a nested supervisor.
+     *
+     * <p>The nested supervisor owns its own children and applies its own strategy.
+     * Escalation from the nested supervisor propagates to this supervisor as a crash signal.
+     *
+     * <pre>{@code
+     * ChildSpec.supervisor("inner-sup", new SupervisorActor() {
+     *     public List<ChildSpec> children() { return List.of(ChildSpec.stateless("worker", actor)); }
+     *     public SupervisionStrategy strategy() { return new OneForOneStrategy(RestartWindow.UNLIMITED); }
+     * })
+     * }</pre>
+     */
+    static ChildSpec supervisor(String actorId, SupervisorActor supervisorActor) {
+        return new SupervisorChildSpec(actorId, supervisorActor);
     }
 }

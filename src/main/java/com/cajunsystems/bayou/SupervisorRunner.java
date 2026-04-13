@@ -114,8 +114,11 @@ final class SupervisorRunner extends AbstractActorRunner<ChildCrash> {
         runner.setCrashListener(crash -> this.tell(crash));
         runner.start();
         childRunners.add(runner);
-        context.system().registerActor(spec.actorId(), runner.toActorRef());
-        return runner.toActorRef();
+        ActorRef<?> ref = (runner instanceof SupervisorRunner sr)
+                ? sr.toSupervisorRef()
+                : runner.toActorRef();
+        context.system().registerActor(spec.actorId(), ref);
+        return ref;
     }
 
     // ── Child factory ──────────────────────────────────────────────────────────
@@ -133,6 +136,10 @@ final class SupervisorRunner extends AbstractActorRunner<ChildCrash> {
             return new EventSourcedActorRunner<>(s.actorId(), context.system(),
                     ((EventSourcedChildSpec<Object, Object, Object>) s).actor(),
                     ((EventSourcedChildSpec<Object, Object, Object>) s).eventSerializer());
+        } else if (spec instanceof SupervisorChildSpec s) {
+            return new SupervisorRunner(s.actorId(), context.system(),
+                    s.supervisorActor().strategy(),
+                    s.supervisorActor().children());
         }
         throw new IllegalStateException("Unknown ChildSpec type: " + spec.getClass());
     }
