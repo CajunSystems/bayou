@@ -13,7 +13,7 @@
 | 3 — Supervisor Actor | complete | 03-01-SUMMARY.md |
 | 4 — Restart Mechanics | complete | 04-01-SUMMARY.md |
 | 5 — Death Spiral Guard | complete | 05-01-SUMMARY.md |
-| 6 — Testing & Polish | not started | |
+| 6 — Testing & Polish | planned | 06-01-PLAN.md, 06-02-PLAN.md, 06-03-PLAN.md |
 
 ## Last Action
 
@@ -45,4 +45,4 @@ Phase 5 complete — 2026-04-13
 
 ## Active Plan
 
-None — Phase 5 complete. Run `/gsd:plan-phase 6` to plan Phase 6.
+Phase 6, Plan 1 — `06-01-PLAN.md` (2 tasks, ready to execute)
