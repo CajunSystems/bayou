@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 6: Testing & Polish** — not started
+**Phase 6: Testing & Polish** — complete
 
 ## Phase Status
 
@@ -13,11 +13,11 @@
 | 3 — Supervisor Actor | complete | 03-01-SUMMARY.md |
 | 4 — Restart Mechanics | complete | 04-01-SUMMARY.md |
 | 5 — Death Spiral Guard | complete | 05-01-SUMMARY.md |
-| 6 — Testing & Polish | planned | 06-01-PLAN.md, 06-02-PLAN.md, 06-03-PLAN.md |
+| 6 — Testing & Polish | complete | 06-01-SUMMARY.md, 06-02-SUMMARY.md, 06-03-SUMMARY.md |
 
 ## Last Action
 
-Phase 6, Plan 2 complete — 2026-04-13
+Phase 6 complete — 2026-04-13
 
 ## Accumulated Decisions
 
@@ -48,4 +48,4 @@ Phase 6, Plan 2 complete — 2026-04-13
 
 ## Active Plan
 
-Phase 6, Plan 3 — `06-03-PLAN.md` (1 task, ready to execute)
+None — roadmap complete.

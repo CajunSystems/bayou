@@ -70,7 +70,7 @@ Add Erlang/Akka-style supervisor trees to Bayou. Six phases taking the system fr
 
 ---
 
-### Phase 6: Testing & Polish
+### ~~Phase 6: Testing & Polish~~ ✓ Complete
 **Goal:** Full test coverage, documentation, and cleanup.
 
 - `SupervisionTest`: one-for-one strategy — verify only crashed child restarts
