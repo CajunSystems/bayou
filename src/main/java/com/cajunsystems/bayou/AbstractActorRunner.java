@@ -125,6 +125,15 @@ abstract class AbstractActorRunner<M> {
         Thread.ofVirtual().name("bayou-" + actorId).start(this::loop);
     }
 
+    void escalate(Throwable cause) {
+        if (crashListener == null) {
+            context.logger().error(
+                "Actor '{}': top-level supervisor exceeded restart window — stopping permanently",
+                actorId, cause);
+        }
+        throw new EscalationException(actorId, cause);
+    }
+
     // ── Template methods ─────────────────────────────────────────────────────
 
     /** Subclasses replay events or restore snapshots here (runs inside the actor thread). */

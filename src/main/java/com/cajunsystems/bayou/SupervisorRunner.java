@@ -74,9 +74,11 @@ final class SupervisorRunner extends AbstractActorRunner<ChildCrash> {
             case STOP ->
                 logger.info("Supervisor '{}': child '{}' permanently stopped",
                         actorId, crash.actorId());
-            case ESCALATE ->
-                logger.warn("Supervisor '{}': ESCALATE not yet implemented — " +
-                        "treating child '{}' as permanently stopped", actorId, crash.actorId());
+            case ESCALATE -> {
+                logger.info("Supervisor '{}': child '{}' exceeded restart window — escalating",
+                        actorId, crash.actorId());
+                escalate(crash.cause());
+            }
         }
     }
 
@@ -87,6 +89,10 @@ final class SupervisorRunner extends AbstractActorRunner<ChildCrash> {
                 .map(AbstractActorRunner::stop)
                 .toArray(CompletableFuture[]::new);
         CompletableFuture.allOf(stops).join();
+        for (AbstractActorRunner<?> runner : childRunners) {
+            context.system().unregisterActor(runner.actorId);
+        }
+        childRunners.clear();
     }
 
     // ── Dynamic child spawning ─────────────────────────────────────────────────

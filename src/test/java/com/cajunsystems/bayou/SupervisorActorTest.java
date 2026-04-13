@@ -88,8 +88,9 @@ class SupervisorActorTest {
         ref.stop().get(5, TimeUnit.SECONDS);
 
         assertThat(ref.isAlive()).isFalse();
-        assertThat(system.lookup("c1").map(ActorRef::isAlive)).contains(false);
-        assertThat(system.lookup("c2").map(ActorRef::isAlive)).contains(false);
+        // cleanup() unregisters children from the system after stopping them
+        assertThat(system.lookup("c1")).isEmpty();
+        assertThat(system.lookup("c2")).isEmpty();
     }
 
     @Test

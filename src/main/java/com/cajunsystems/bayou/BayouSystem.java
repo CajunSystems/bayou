@@ -54,6 +54,11 @@ public class BayouSystem implements AutoCloseable {
         actors.put(actorId, ref);
     }
 
+    /** Called by {@link SupervisorRunner#cleanup()} to deregister children on stop/escalation. */
+    void unregisterActor(String actorId) {
+        actors.remove(actorId);
+    }
+
     // ── Spawn: stateless ─────────────────────────────────────────────────────
 
     /**
