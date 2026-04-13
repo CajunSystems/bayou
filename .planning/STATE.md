@@ -17,7 +17,7 @@
 
 ## Last Action
 
-Phase 5 complete — 2026-04-13
+Phase 6, Plan 1 complete — 2026-04-13
 
 ## Accumulated Decisions
 
@@ -42,7 +42,10 @@ Phase 5 complete — 2026-04-13
 - `cleanup()` unregisters children from `BayouSystem.actors` + clears `childRunners` — enables clean restart by parent
 - `BayouSystem.unregisterActor()` — `actors.remove(actorId)`; safe from cleanup() thread
 - Strategy `restartHistory` is `HashMap` (not ConcurrentHashMap) — `decide()` is called only from the supervisor's own virtual thread
+- `SupervisorChildSpec` sealed record — 4th ChildSpec variant; `ChildSpec.supervisor()` factory creates nested supervisor specs
+- `startAndRegister()` checks `instanceof SupervisorRunner` to register `SupervisorRef` vs `ActorRef` — ensures `system.lookup("child-sup")` returns a castable `SupervisorRef`
+- Nested supervisor crash propagation uses existing `crashListener` machinery — no new wiring needed; escalation from child supervisor fires `ChildCrash` to parent supervisor's mailbox
 
 ## Active Plan
 
-Phase 6, Plan 1 — `06-01-PLAN.md` (2 tasks, ready to execute)
+Phase 6, Plan 2 — `06-02-PLAN.md` (2 tasks, ready to execute)
