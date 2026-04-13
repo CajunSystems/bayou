@@ -24,22 +24,20 @@ public sealed interface ChildSpec permits StatelessChildSpec, StatefulChildSpec,
     }
 
     /**
-     * Creates a spec for a stateful actor with the default snapshot interval
-     * ({@value BayouSystem#DEFAULT_SNAPSHOT_INTERVAL}).
+     * Creates a spec for a stateful actor.
+     * The default snapshot interval ({@value BayouSystem#DEFAULT_SNAPSHOT_INTERVAL}) is used
+     * unless overridden via {@link StatefulChildSpec#snapshotInterval(int)}.
+     *
+     * <pre>{@code
+     * ChildSpec.stateful("counter", new MyCounter(), new JavaSerializer<>())
+     *          .snapshotInterval(10)
+     * }</pre>
      */
-    static <S, M> ChildSpec stateful(String actorId,
-                                      StatefulActor<S, M> actor,
-                                      BayouSerializer<S> stateSerializer) {
+    static <S, M> StatefulChildSpec<S, M> stateful(String actorId,
+                                                     StatefulActor<S, M> actor,
+                                                     BayouSerializer<S> stateSerializer) {
         return new StatefulChildSpec<>(actorId, actor, stateSerializer,
                 BayouSystem.DEFAULT_SNAPSHOT_INTERVAL);
-    }
-
-    /** Creates a spec for a stateful actor with a custom snapshot interval. */
-    static <S, M> ChildSpec stateful(String actorId,
-                                      StatefulActor<S, M> actor,
-                                      BayouSerializer<S> stateSerializer,
-                                      int snapshotInterval) {
-        return new StatefulChildSpec<>(actorId, actor, stateSerializer, snapshotInterval);
     }
 
     /** Creates a spec for an event-sourced actor. */
