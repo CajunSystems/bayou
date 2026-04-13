@@ -213,3 +213,137 @@ public interface BayouSerializer<T> {
 | `StatefulActor` | `bayou.snapshots:<id>` | one append every N messages + on stop | latest entry on startup |
 
 Tags follow gumbo's namespace+key convention: `LogTag.of("bayou.events", actorId)`. Multiple actors coexist in the same physical log; each has its own scoped `LogView`.
+
+---
+
+## Supervision
+
+Bayou supports Erlang/Akka-style supervision trees. Supervisors own a group of child actors and
+react to their crashes — restarting, stopping, or escalating — so transient failures are
+recovered automatically without any application-level error handling.
+
+### Basic supervisor
+
+Use `spawnSupervisor()` with a `SupervisorActor` that declares the children and the strategy:
+
+```java
+SupervisorRef ref = system.spawnSupervisor("my-supervisor", new SupervisorActor() {
+
+    @Override
+    public List<ChildSpec> children() {
+        return List.of(
+            ChildSpec.stateless("worker",  (msg, ctx) -> handle(msg)),
+            ChildSpec.stateful("counter",  new CounterActor(), new JavaSerializer<>()),
+            ChildSpec.eventSourced("ledger", new LedgerActor(), new JavaSerializer<>())
+        );
+    }
+
+    @Override
+    public SupervisionStrategy strategy() {
+        return new OneForOneStrategy(new RestartWindow(5, Duration.ofSeconds(60)));
+    }
+});
+```
+
+`SupervisorRef` extends `ActorRef<Void>` — supervisors don't accept user messages. Use `ref.stop()` to stop the supervisor and all its children.
+
+### Supervision strategies
+
+Two built-in strategies:
+
+| Strategy | Behaviour on crash |
+|---|---|
+| `OneForOneStrategy` | Restart only the crashed child; siblings are unaffected |
+| `AllForOneStrategy` | Stop all children, then restart all in declaration order |
+
+### Restart window and death spiral guard
+
+A `RestartWindow` limits how many times a child can crash within a rolling time window before
+the supervisor gives up and escalates:
+
+```java
+// Restart up to 5 times within 60 seconds, then escalate:
+new OneForOneStrategy(new RestartWindow(5, Duration.ofSeconds(60)))
+
+// Always restart — no limit:
+new OneForOneStrategy(RestartWindow.UNLIMITED)
+```
+
+When the window is exceeded the supervisor escalates: it treats itself as crashed and fires a
+crash signal to its own parent. A top-level supervisor (no parent) logs a critical error and
+stops gracefully.
+
+### Custom strategies and RestartDecision
+
+`SupervisionStrategy` is a functional interface — pass a lambda for one-off decisions:
+
+```java
+// Always stop the crashed child; never restart
+SupervisionStrategy stopAll = (childId, cause) -> RestartDecision.STOP;
+```
+
+The four `RestartDecision` values:
+
+| Decision | Meaning |
+|---|---|
+| `RESTART` | Restart only the crashed child (one-for-one) |
+| `RESTART_ALL` | Stop all children then restart all (all-for-one) |
+| `STOP` | Permanently stop the crashed child; no restart |
+| `ESCALATE` | Propagate failure up the supervision tree |
+
+### Dynamic child spawning
+
+`children()` defaults to an empty list — implement only `strategy()` for supervisors that
+add children at runtime:
+
+```java
+SupervisorRef sup = system.spawnSupervisor("router", new SupervisorActor() {
+    @Override
+    public SupervisionStrategy strategy() {
+        return new OneForOneStrategy(RestartWindow.UNLIMITED);
+    }
+});
+
+// Add children from any thread after the supervisor is alive
+sup.spawnChild(ChildSpec.stateless("worker-1", handler));
+sup.spawnChild(ChildSpec.stateless("worker-2", handler));
+```
+
+### Nested supervisors
+
+`ChildSpec.supervisor()` embeds a supervisor as a child, forming a multi-level tree. Escalation
+propagates up: when a child supervisor exhausts its restart window it becomes a crash in the
+parent supervisor's mailbox.
+
+```java
+system.spawnSupervisor("root", new SupervisorActor() {
+    @Override
+    public List<ChildSpec> children() {
+        return List.of(
+            ChildSpec.supervisor("db-group", new SupervisorActor() {
+                @Override
+                public List<ChildSpec> children() {
+                    return List.of(
+                        ChildSpec.stateless("db-writer", writerActor),
+                        ChildSpec.stateless("db-reader", readerActor)
+                    );
+                }
+                @Override
+                public SupervisionStrategy strategy() {
+                    return new AllForOneStrategy(new RestartWindow(3, Duration.ofSeconds(30)));
+                }
+            })
+        );
+    }
+    @Override
+    public SupervisionStrategy strategy() {
+        return new OneForOneStrategy(RestartWindow.UNLIMITED);
+    }
+});
+```
+
+### Stateful and event-sourced restart semantics
+
+Supervised stateful actors restore their last snapshot on restart. Supervised event-sourced actors
+replay their full event log. No extra configuration is needed — restart calls `initialize()` on the
+runner, which reads from the shared log automatically.
