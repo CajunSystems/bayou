@@ -4,6 +4,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * Base virtual-thread actor runner.
@@ -30,6 +31,7 @@ abstract class AbstractActorRunner<M> {
     final BayouContextImpl context;
     final AtomicBoolean running = new AtomicBoolean(false);
     private final CompletableFuture<Void> stopFuture = new CompletableFuture<>();
+    private volatile Consumer<ChildCrash> crashListener;
 
     AbstractActorRunner(String actorId, BayouSystem system) {
         this.actorId = actorId;
@@ -47,6 +49,7 @@ abstract class AbstractActorRunner<M> {
     }
 
     private void loop() {
+        Throwable terminalCause = null;
         try {
             initialize();
             while (running.get() || !mailbox.isEmpty()) {
@@ -67,6 +70,7 @@ abstract class AbstractActorRunner<M> {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (Exception e) {
+            terminalCause = e;
             context.logger().error("Actor '{}' terminated unexpectedly", actorId, e);
         } finally {
             try {
@@ -75,6 +79,12 @@ abstract class AbstractActorRunner<M> {
                 context.logger().error("Error during cleanup for actor '{}'", actorId, e);
             }
             stopFuture.complete(null);
+            if (terminalCause != null) {
+                var listener = crashListener;
+                if (listener != null) {
+                    listener.accept(new ChildCrash(actorId, terminalCause, this));
+                }
+            }
         }
     }
 
@@ -94,6 +104,11 @@ abstract class AbstractActorRunner<M> {
     final CompletableFuture<Void> stop() {
         running.set(false);
         return stopFuture;
+    }
+
+    /** Called by a supervisor runner after construction to register itself for crash notifications. */
+    void setCrashListener(Consumer<ChildCrash> listener) {
+        this.crashListener = listener;
     }
 
     // ── Template methods ─────────────────────────────────────────────────────
