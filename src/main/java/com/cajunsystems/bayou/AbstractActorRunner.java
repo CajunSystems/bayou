@@ -30,7 +30,7 @@ abstract class AbstractActorRunner<M> {
     private final LinkedBlockingQueue<Envelope<M>> mailbox = new LinkedBlockingQueue<>();
     final BayouContextImpl context;
     final AtomicBoolean running = new AtomicBoolean(false);
-    private final CompletableFuture<Void> stopFuture = new CompletableFuture<>();
+    private volatile CompletableFuture<Void> stopFuture = new CompletableFuture<>();
     private volatile Consumer<ChildCrash> crashListener;
 
     AbstractActorRunner(String actorId, BayouSystem system) {
@@ -71,6 +71,7 @@ abstract class AbstractActorRunner<M> {
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             terminalCause = e;
+            running.set(false);
             context.logger().error("Actor '{}' terminated unexpectedly", actorId, e);
         } finally {
             try {
@@ -109,6 +110,19 @@ abstract class AbstractActorRunner<M> {
     /** Called by a supervisor runner after construction to register itself for crash notifications. */
     void setCrashListener(Consumer<ChildCrash> listener) {
         this.crashListener = listener;
+    }
+
+    /**
+     * Restart this runner after a crash or a graceful stop.
+     * Resets running state, replaces the stop future, and starts a new virtual thread.
+     * The mailbox is preserved — queued messages will be delivered after restart.
+     *
+     * <p>Caller must ensure the previous virtual thread has fully exited before calling.
+     */
+    void restart() {
+        running.set(true);
+        stopFuture = new CompletableFuture<>();
+        Thread.ofVirtual().name("bayou-" + actorId).start(this::loop);
     }
 
     // ── Template methods ─────────────────────────────────────────────────────
