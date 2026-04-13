@@ -5,6 +5,7 @@ import com.cajunsystems.bayou.actor.StatefulActor;
 import com.cajunsystems.bayou.actor.Actor;
 import com.cajunsystems.gumbo.api.SharedLog;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,6 +46,12 @@ public class BayouSystem implements AutoCloseable {
 
     SharedLog sharedLog() {
         return sharedLog;
+    }
+
+    /** Called by {@link SupervisorRunner} to register child actors spawned internally. */
+    void registerActor(String actorId, ActorRef<?> ref) {
+        checkNotDuplicate(actorId);
+        actors.put(actorId, ref);
     }
 
     // ── Spawn: stateless ─────────────────────────────────────────────────────
@@ -135,6 +142,42 @@ public class BayouSystem implements AutoCloseable {
         var runner = new StatefulActorRunner<>(actorId, this, actor, stateSerializer, snapshotInterval);
         runner.start();
         ActorRef<M> ref = runner.toActorRef();
+        actors.put(actorId, ref);
+        return ref;
+    }
+
+    // ── Spawn: supervisor ─────────────────────────────────────────────────────
+
+    /**
+     * Spawn a supervisor that owns and monitors a group of child actors.
+     *
+     * <p>The supervisor starts all declared children immediately. When a child crashes,
+     * the supervisor applies its {@link SupervisionStrategy} to decide what to do.
+     *
+     * <pre>{@code
+     * SupervisorRef ref = system.spawnSupervisor("my-supervisor", new SupervisorActor() {
+     *     public List<ChildSpec> children() {
+     *         return List.of(ChildSpec.stateless("worker", (msg, ctx) -> ...));
+     *     }
+     *     public SupervisionStrategy strategy() {
+     *         return new OneForOneStrategy(RestartWindow.UNLIMITED);
+     *     }
+     * });
+     * }</pre>
+     *
+     * @param actorId        unique identity for the supervisor within this system
+     * @param supervisorActor the supervision definition (children + strategy)
+     * @return a reference for managing the supervisor lifecycle
+     */
+    public SupervisorRef spawnSupervisor(String actorId, SupervisorActor supervisorActor) {
+        checkNotDuplicate(actorId);
+        List<ChildSpec> children = supervisorActor.children();
+        for (ChildSpec child : children) {
+            checkNotDuplicate(child.actorId());
+        }
+        var runner = new SupervisorRunner(actorId, this, supervisorActor.strategy(), children);
+        runner.start();
+        SupervisorRef ref = runner.toSupervisorRef();
         actors.put(actorId, ref);
         return ref;
     }
