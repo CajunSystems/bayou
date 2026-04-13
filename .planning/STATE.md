@@ -12,7 +12,7 @@
 | 2 — Supervision Strategy Model | complete | 02-01-SUMMARY.md |
 | 3 — Supervisor Actor | complete | 03-01-SUMMARY.md |
 | 4 — Restart Mechanics | complete | 04-01-SUMMARY.md |
-| 5 — Death Spiral Guard | not started | |
+| 5 — Death Spiral Guard | planned | 05-01-PLAN.md |
 | 6 — Testing & Polish | not started | |
 
 ## Last Action
@@ -42,4 +42,4 @@ Phase 4 complete — 2026-04-13
 
 ## Active Plan
 
-None — Phase 4 complete. Run `/gsd:plan-phase 5` to plan Phase 5.
+Phase 5, Plan 1 — `05-01-PLAN.md` (3 tasks, ready to execute)
