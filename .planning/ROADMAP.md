@@ -57,7 +57,7 @@ Add Erlang/Akka-style supervisor trees to Bayou. Six phases taking the system fr
 
 ---
 
-### Phase 5: Death Spiral Guard
+### ~~Phase 5: Death Spiral Guard~~ ✓ Complete
 **Goal:** Supervisors stop retrying after too many crashes and escalate up the tree.
 
 - Per-child restart timestamp ring buffer (bounded by max-restarts count)

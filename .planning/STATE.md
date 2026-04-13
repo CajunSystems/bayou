@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 5: Death Spiral Guard** — not started
+**Phase 6: Testing & Polish** — not started
 
 ## Phase Status
 
@@ -12,12 +12,12 @@
 | 2 — Supervision Strategy Model | complete | 02-01-SUMMARY.md |
 | 3 — Supervisor Actor | complete | 03-01-SUMMARY.md |
 | 4 — Restart Mechanics | complete | 04-01-SUMMARY.md |
-| 5 — Death Spiral Guard | planned | 05-01-PLAN.md |
+| 5 — Death Spiral Guard | complete | 05-01-SUMMARY.md |
 | 6 — Testing & Polish | not started | |
 
 ## Last Action
 
-Phase 4 complete — 2026-04-13
+Phase 5 complete — 2026-04-13
 
 ## Accumulated Decisions
 
@@ -27,7 +27,6 @@ Phase 4 complete — 2026-04-13
 - `processEnvelope()` still swallows handler exceptions — "let it crash" from handler deferred
 - `RestartDecision` has 4 values: RESTART, RESTART_ALL, STOP, ESCALATE
 - `SupervisionStrategy` is `@FunctionalInterface` — supports lambda custom strategies
-- Strategy `decide()` always returns constant for now — Phase 5 adds spiral counting
 - `RestartWindow` stored in strategy constructor — signature stable for Phase 5
 - `SupervisorRunner extends AbstractActorRunner<ChildCrash>` — mailbox typed to crash signals
 - `SupervisorRef extends ActorRef<Void>` — supervisors not user-messageable; stored in BayouSystem.actors
@@ -37,9 +36,13 @@ Phase 4 complete — 2026-04-13
 - `AbstractActorRunner.stopFuture` is `volatile` (not final) — allows `restart()` to replace it
 - `running.set(false)` in crash catch block — fixes `isAlive()` after crash; enables natural RESTART_ALL sibling filter
 - `restart()` sets `running=true`, fresh `stopFuture`, new virtual thread — mailbox preserved
-- ESCALATE is a no-op stub in Phase 4 — Phase 5 implements actual propagation
 - `SupervisorRunner.childRunners` is `CopyOnWriteArrayList` — thread-safe for `spawnChild` from any thread
+- `EscalationException extends RuntimeException` — thrown from `escalate()`, caught by existing `catch (Exception e)` in `loop()`, no changes to loop needed
+- `escalate()` on `AbstractActorRunner` — checks `crashListener == null` to detect top-level (log critical); always throws EscalationException
+- `cleanup()` unregisters children from `BayouSystem.actors` + clears `childRunners` — enables clean restart by parent
+- `BayouSystem.unregisterActor()` — `actors.remove(actorId)`; safe from cleanup() thread
+- Strategy `restartHistory` is `HashMap` (not ConcurrentHashMap) — `decide()` is called only from the supervisor's own virtual thread
 
 ## Active Plan
 
-Phase 5, Plan 1 — `05-01-PLAN.md` (3 tasks, ready to execute)
+None — Phase 5 complete. Run `/gsd:plan-phase 6` to plan Phase 6.
