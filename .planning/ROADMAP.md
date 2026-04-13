@@ -43,7 +43,7 @@ Add Erlang/Akka-style supervisor trees to Bayou. Six phases taking the system fr
 
 ---
 
-### Phase 4: Restart Mechanics
+### ~~Phase 4: Restart Mechanics~~ ✓ Complete
 **Goal:** Supervisors can actually restart children after receiving a crash signal.
 
 - `restart(runner)` utility: calls `cleanup()`, re-runs `initialize()`, starts a new virtual thread
