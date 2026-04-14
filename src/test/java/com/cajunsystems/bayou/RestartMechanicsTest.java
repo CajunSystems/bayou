@@ -84,9 +84,9 @@ class RestartMechanicsTest {
 
         // Wait for restart to complete (actor alive after second preStart)
         await().atMost(5, TimeUnit.SECONDS).until(() ->
-                system.lookup("worker").map(ActorRef::isAlive).orElse(false));
+                system.lookup("worker").map(Ref::isAlive).orElse(false));
 
-        ActorRef<String> worker = system.<String>lookup("worker").orElseThrow();
+        Ref<String> worker = system.<String>lookup("worker").orElseThrow();
         worker.tell("hello");
         worker.tell("world");
 
@@ -99,7 +99,7 @@ class RestartMechanicsTest {
         var sharedLog = system.sharedLog();
 
         // Phase 1: standalone actor accumulates state (snapshot every message)
-        ActorRef<Integer> seeder = system.spawnStateful("ctr", new SumActor(), new JavaSerializer<>(), 1);
+        Ref<Integer> seeder = system.spawnStateful("ctr", new SumActor(), new JavaSerializer<>(), 1);
         seeder.tell(7);
         seeder.tell(8);
         // Wait for both messages processed and snapshotted (ask with 0 returns current state)
@@ -132,7 +132,7 @@ class RestartMechanicsTest {
         await().atMost(5, TimeUnit.SECONDS).until(() -> preStartCalls.get() >= 2);
 
         // State should be restored from snapshot = 15; ask with 0 → reply = 15
-        ActorRef<Integer> ctr = system2.<Integer>lookup("ctr").orElseThrow();
+        Ref<Integer> ctr = system2.<Integer>lookup("ctr").orElseThrow();
         int restored = ctr.<Integer>ask(0).get(5, TimeUnit.SECONDS);
         assertThat(restored).isEqualTo(15);
 
@@ -175,8 +175,8 @@ class RestartMechanicsTest {
         await().atMost(5, TimeUnit.SECONDS).until(() ->
                 aPreStarts.get() >= 2 && bPreStarts.get() >= 2);
 
-        assertThat(system.lookup("a").map(ActorRef::isAlive)).contains(true);
-        assertThat(system.lookup("b").map(ActorRef::isAlive)).contains(true);
+        assertThat(system.lookup("a").map(Ref::isAlive)).contains(true);
+        assertThat(system.lookup("b").map(Ref::isAlive)).contains(true);
     }
 
     @Test
@@ -199,11 +199,11 @@ class RestartMechanicsTest {
 
         // Wait for crash to be processed — actor stops and stays stopped
         await().atMost(5, TimeUnit.SECONDS).until(() ->
-                system.lookup("crasher").map(ActorRef::isAlive).map(alive -> !alive).orElse(false));
+                system.lookup("crasher").map(Ref::isAlive).map(alive -> !alive).orElse(false));
 
         // Confirm no restart occurs
         Thread.sleep(300);
-        assertThat(system.lookup("crasher").map(ActorRef::isAlive)).contains(false);
+        assertThat(system.lookup("crasher").map(Ref::isAlive)).contains(false);
     }
 
     @Test
@@ -224,9 +224,9 @@ class RestartMechanicsTest {
                 (String msg, BayouContext ctx) -> received.add(msg)));
 
         await().atMost(2, TimeUnit.SECONDS).until(() ->
-                system.lookup("dynamic").map(ActorRef::isAlive).orElse(false));
+                system.lookup("dynamic").map(Ref::isAlive).orElse(false));
 
-        ActorRef<String> child = system.<String>lookup("dynamic").orElseThrow();
+        Ref<String> child = system.<String>lookup("dynamic").orElseThrow();
         child.tell("ping");
         child.tell("pong");
 
@@ -239,7 +239,7 @@ class RestartMechanicsTest {
         var sharedLog = system.sharedLog();
 
         // Phase 1: standalone actor builds event log (value = 5 + 3 = 8)
-        ActorRef<Integer> seeder = system.spawnEventSourced("ctr", new SumEventActor(), new JavaSerializer<>());
+        Ref<Integer> seeder = system.spawnEventSourced("ctr", new SumEventActor(), new JavaSerializer<>());
         seeder.tell(5);
         seeder.tell(3);
         await().atMost(5, TimeUnit.SECONDS)
@@ -270,7 +270,7 @@ class RestartMechanicsTest {
         await().atMost(5, TimeUnit.SECONDS).until(() -> preStartCalls.get() >= 2);
 
         // State replayed from event log: 0 + 5 + 3 = 8; ask with 0 → reply = 8
-        ActorRef<Integer> ctr = system2.<Integer>lookup("ctr").orElseThrow();
+        Ref<Integer> ctr = system2.<Integer>lookup("ctr").orElseThrow();
         int replayed = ctr.<Integer>ask(0).get(5, TimeUnit.SECONDS);
         assertThat(replayed).isEqualTo(8);
 

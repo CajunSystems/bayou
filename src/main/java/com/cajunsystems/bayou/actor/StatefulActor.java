@@ -28,7 +28,7 @@ import com.cajunsystems.bayou.BayouContext;
  *     }
  * }
  *
- * ActorRef<String> counter = system.spawnStateful(
+ * Ref<String> counter = system.spawnStateful(
  *     "word-counter", new WordCounter(), new JavaSerializer<>());
  * }</pre>
  *

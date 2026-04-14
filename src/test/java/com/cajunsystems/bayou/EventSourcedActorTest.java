@@ -74,7 +74,7 @@ class EventSourcedActorTest {
 
     @Test
     void stateAccumulatesAcrossMessages() throws Exception {
-        ActorRef<CounterCmd> counter = system.spawnEventSourced(
+        Ref<CounterCmd> counter = system.spawnEventSourced(
                 "counter", new CounterActor(), new JavaSerializer<>());
 
         counter.tell(new CounterCmd.Increment(3));
@@ -86,7 +86,7 @@ class EventSourcedActorTest {
 
     @Test
     void resetEventClearsState() throws Exception {
-        ActorRef<CounterCmd> counter = system.spawnEventSourced(
+        Ref<CounterCmd> counter = system.spawnEventSourced(
                 "counter-reset", new CounterActor(), new JavaSerializer<>());
 
         counter.tell(new CounterCmd.Increment(5));
@@ -103,7 +103,7 @@ class EventSourcedActorTest {
         // We use two BayouSystem instances sharing the same SharedLogService.
         var sharedLog = system.sharedLog();
 
-        ActorRef<CounterCmd> counter1 = system.spawnEventSourced(
+        Ref<CounterCmd> counter1 = system.spawnEventSourced(
                 "replay-counter", new CounterActor(), new JavaSerializer<>());
         counter1.tell(new CounterCmd.Increment(10));
         counter1.tell(new CounterCmd.Increment(5));
@@ -111,7 +111,7 @@ class EventSourcedActorTest {
 
         // Second system re-uses the same underlying log
         BayouSystem system2 = new BayouSystem(sharedLog);
-        ActorRef<CounterCmd> counter2 = system2.spawnEventSourced(
+        Ref<CounterCmd> counter2 = system2.spawnEventSourced(
                 "replay-counter", new CounterActor(), new JavaSerializer<>());
 
         int value = counter2.<Integer>ask(new CounterCmd.GetValue()).get(5, TimeUnit.SECONDS);
@@ -121,7 +121,7 @@ class EventSourcedActorTest {
 
     @Test
     void readOnlyQueryProducesNoEvents() throws Exception {
-        ActorRef<CounterCmd> counter = system.spawnEventSourced(
+        Ref<CounterCmd> counter = system.spawnEventSourced(
                 "ro-counter", new CounterActor(), new JavaSerializer<>());
 
         // GetValue is a pure read — no events should be emitted
@@ -134,7 +134,7 @@ class EventSourcedActorTest {
     @Test
     void preStartCalledAfterReplay() throws Exception {
         var startCount = new AtomicInteger(0);
-        ActorRef<CounterCmd> counter = system.spawnEventSourced(
+        Ref<CounterCmd> counter = system.spawnEventSourced(
                 "lifecycle-es",
                 new CounterActor() {
                     @Override
@@ -151,7 +151,7 @@ class EventSourcedActorTest {
     @Test
     void postStopCalledAfterStop() throws Exception {
         var events = new java.util.concurrent.CopyOnWriteArrayList<String>();
-        ActorRef<CounterCmd> counter = system.spawnEventSourced(
+        Ref<CounterCmd> counter = system.spawnEventSourced(
                 "lifecycle-es-stop",
                 new CounterActor() {
                     @Override public void preStart(BayouContext ctx) { events.add("start"); }

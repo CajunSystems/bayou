@@ -34,8 +34,8 @@ class SupervisorActorTest {
         });
 
         await().atMost(2, TimeUnit.SECONDS).until(() ->
-            system.lookup("child-a").map(ActorRef::isAlive).orElse(false)
-            && system.lookup("child-b").map(ActorRef::isAlive).orElse(false)
+            system.lookup("child-a").map(Ref::isAlive).orElse(false)
+            && system.lookup("child-b").map(Ref::isAlive).orElse(false)
         );
 
         assertThat(ref.isAlive()).isTrue();
@@ -58,9 +58,9 @@ class SupervisorActorTest {
         });
 
         await().atMost(2, TimeUnit.SECONDS).until(() ->
-            system.lookup("worker").map(ActorRef::isAlive).orElse(false));
+            system.lookup("worker").map(Ref::isAlive).orElse(false));
 
-        ActorRef<String> worker = system.<String>lookup("worker").orElseThrow();
+        Ref<String> worker = system.<String>lookup("worker").orElseThrow();
         worker.tell("hello");
         worker.tell("world");
 
@@ -83,7 +83,7 @@ class SupervisorActorTest {
         });
 
         await().atMost(2, TimeUnit.SECONDS).until(() ->
-            system.lookup("c1").map(ActorRef::isAlive).orElse(false));
+            system.lookup("c1").map(Ref::isAlive).orElse(false));
 
         ref.stop().get(5, TimeUnit.SECONDS);
 

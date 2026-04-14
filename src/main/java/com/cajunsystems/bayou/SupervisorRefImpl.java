@@ -6,11 +6,11 @@ import java.util.concurrent.CompletableFuture;
  * Package-private {@link SupervisorRef} backed by a {@link SupervisorRunner}.
  * Exposes lifecycle operations only — supervisors do not accept user messages.
  */
-final class SupervisorActorRefImpl implements SupervisorRef {
+final class SupervisorRefImpl implements SupervisorRef {
 
     private final SupervisorRunner runner;
 
-    SupervisorActorRefImpl(SupervisorRunner runner) {
+    SupervisorRefImpl(SupervisorRunner runner) {
         this.runner = runner;
     }
 
@@ -41,7 +41,7 @@ final class SupervisorActorRefImpl implements SupervisorRef {
     }
 
     @Override
-    public ActorRef<?> spawnChild(ChildSpec spec) {
+    public Ref<?> spawnChild(ChildSpec spec) {
         return runner.spawnChild(spec);
     }
 }

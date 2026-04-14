@@ -73,7 +73,7 @@ class StatefulActorTest {
 
     @Test
     void reducerAccumulatesState() throws Exception {
-        ActorRef<TallyCmd> actor = system.spawnStateful(
+        Ref<TallyCmd> actor = system.spawnStateful(
                 "tally", new WordCounter(), new JavaSerializer<>());
 
         actor.tell(new TallyCmd.Count("foo"));
@@ -91,7 +91,7 @@ class StatefulActorTest {
         var sharedLog = system.sharedLog();
 
         // Use interval=1 so a snapshot is taken after every single message
-        ActorRef<TallyCmd> actor1 = system.spawnStateful(
+        Ref<TallyCmd> actor1 = system.spawnStateful(
                 "tally-snap", new WordCounter(), new JavaSerializer<>(), 1);
 
         actor1.tell(new TallyCmd.Count("hello"));
@@ -100,7 +100,7 @@ class StatefulActorTest {
 
         // New system, same log — should restore from snapshot
         BayouSystem system2 = new BayouSystem(sharedLog);
-        ActorRef<TallyCmd> actor2 = system2.spawnStateful(
+        Ref<TallyCmd> actor2 = system2.spawnStateful(
                 "tally-snap", new WordCounter(), new JavaSerializer<>(), 1);
 
         @SuppressWarnings("unchecked")
@@ -113,7 +113,7 @@ class StatefulActorTest {
     @Test
     void snapshotIntervalTriggersAutomatically() throws Exception {
         // With interval=2, a snapshot should be written after every 2nd message
-        ActorRef<TallyCmd> actor = system.spawnStateful(
+        Ref<TallyCmd> actor = system.spawnStateful(
                 "snap-interval", new WordCounter(), new JavaSerializer<>(), 2);
 
         // Send 4 messages → 2 automatic snapshots should be taken
@@ -132,7 +132,7 @@ class StatefulActorTest {
     void errorInReducerLeavesStatUnchanged() throws Exception {
         var errorCount = new AtomicInteger(0);
 
-        ActorRef<TallyCmd> actor = system.spawnStateful("error-state",
+        Ref<TallyCmd> actor = system.spawnStateful("error-state",
                 new StatefulActor<Tally, TallyCmd>() {
                     @Override
                     public Tally initialState() { return new Tally(); }
@@ -177,7 +177,7 @@ class StatefulActorTest {
     @Test
     void preStartAndPostStopCalled() throws Exception {
         var events = new java.util.concurrent.CopyOnWriteArrayList<String>();
-        ActorRef<TallyCmd> actor = system.spawnStateful("lifecycle-sf",
+        Ref<TallyCmd> actor = system.spawnStateful("lifecycle-sf",
                 new StatefulActor<Tally, TallyCmd>() {
                     @Override public Tally initialState() { return new Tally(); }
                     @Override public Tally reduce(Tally s, TallyCmd m, BayouContext c) { return s; }

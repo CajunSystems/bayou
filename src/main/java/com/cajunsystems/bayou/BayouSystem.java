@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * try (SharedLogService log = SharedLogService.open(config);
  *      BayouSystem system = new BayouSystem(log)) {
  *
- *     ActorRef<String> echo = system.spawn("echo",
+ *     Ref<String> echo = system.spawn("echo",
  *             (msg, ctx) -> ctx.logger().info("echo: {}", msg));
  *     echo.tell("hello");
  *     system.shutdown();
@@ -36,7 +36,7 @@ public class BayouSystem implements AutoCloseable {
     public static final int DEFAULT_SNAPSHOT_INTERVAL = 100;
 
     private final SharedLog sharedLog;
-    private final ConcurrentHashMap<String, ActorRef<?>> actors = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Ref<?>> actors = new ConcurrentHashMap<>();
 
     public BayouSystem(SharedLog sharedLog) {
         this.sharedLog = sharedLog;
@@ -49,7 +49,7 @@ public class BayouSystem implements AutoCloseable {
     }
 
     /** Called by {@link SupervisorRunner} to register child actors spawned internally. */
-    void registerActor(String actorId, ActorRef<?> ref) {
+    void registerActor(String actorId, Ref<?> ref) {
         checkNotDuplicate(actorId);
         actors.put(actorId, ref);
     }
@@ -69,11 +69,11 @@ public class BayouSystem implements AutoCloseable {
      * @param <M>       message type
      * @return a reference for sending messages
      */
-    public <M> ActorRef<M> spawn(String actorId, Actor<M> actor) {
+    public <M> Ref<M> spawn(String actorId, Actor<M> actor) {
         checkNotDuplicate(actorId);
         var runner = new StatelessActorRunner<>(actorId, this, actor);
         runner.start();
-        ActorRef<M> ref = runner.toActorRef();
+        Ref<M> ref = runner.toRef();
         actors.put(actorId, ref);
         return ref;
     }
@@ -94,13 +94,13 @@ public class BayouSystem implements AutoCloseable {
      * @param <M>             message type
      * @return a reference for sending messages
      */
-    public <S, E, M> ActorRef<M> spawnEventSourced(String actorId,
-                                                     EventSourcedActor<S, E, M> actor,
-                                                     BayouSerializer<E> eventSerializer) {
+    public <S, E, M> Ref<M> spawnEventSourced(String actorId,
+                                                EventSourcedActor<S, E, M> actor,
+                                                BayouSerializer<E> eventSerializer) {
         checkNotDuplicate(actorId);
         var runner = new EventSourcedActorRunner<>(actorId, this, actor, eventSerializer);
         runner.start();
-        ActorRef<M> ref = runner.toActorRef();
+        Ref<M> ref = runner.toRef();
         actors.put(actorId, ref);
         return ref;
     }
@@ -117,9 +117,9 @@ public class BayouSystem implements AutoCloseable {
      * @param <M>             message type
      * @return a reference for sending messages
      */
-    public <S, M> ActorRef<M> spawnStateful(String actorId,
-                                              StatefulActor<S, M> actor,
-                                              BayouSerializer<S> stateSerializer) {
+    public <S, M> Ref<M> spawnStateful(String actorId,
+                                        StatefulActor<S, M> actor,
+                                        BayouSerializer<S> stateSerializer) {
         return spawnStateful(actorId, actor, stateSerializer, DEFAULT_SNAPSHOT_INTERVAL);
     }
 
@@ -138,15 +138,15 @@ public class BayouSystem implements AutoCloseable {
      * @param <M>              message type
      * @return a reference for sending messages
      */
-    public <S, M> ActorRef<M> spawnStateful(String actorId,
-                                              StatefulActor<S, M> actor,
-                                              BayouSerializer<S> stateSerializer,
-                                              int snapshotInterval) {
+    public <S, M> Ref<M> spawnStateful(String actorId,
+                                        StatefulActor<S, M> actor,
+                                        BayouSerializer<S> stateSerializer,
+                                        int snapshotInterval) {
         if (snapshotInterval <= 0) throw new IllegalArgumentException("snapshotInterval must be > 0");
         checkNotDuplicate(actorId);
         var runner = new StatefulActorRunner<>(actorId, this, actor, stateSerializer, snapshotInterval);
         runner.start();
-        ActorRef<M> ref = runner.toActorRef();
+        Ref<M> ref = runner.toRef();
         actors.put(actorId, ref);
         return ref;
     }
@@ -195,7 +195,7 @@ public class BayouSystem implements AutoCloseable {
      */
     public void shutdown() {
         CompletableFuture<?>[] stops = actors.values().stream()
-                .map(ActorRef::stop)
+                .map(Ref::stop)
                 .toArray(CompletableFuture[]::new);
         try {
             CompletableFuture.allOf(stops).join();
@@ -220,8 +220,8 @@ public class BayouSystem implements AutoCloseable {
      * @return the ref, or {@link Optional#empty()} if no actor with that ID is registered
      */
     @SuppressWarnings("unchecked")
-    public <M> Optional<ActorRef<M>> lookup(String actorId) {
-        return Optional.ofNullable((ActorRef<M>) actors.get(actorId));
+    public <M> Optional<Ref<M>> lookup(String actorId) {
+        return Optional.ofNullable((Ref<M>) actors.get(actorId));
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

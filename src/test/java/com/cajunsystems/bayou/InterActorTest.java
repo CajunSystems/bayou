@@ -31,9 +31,9 @@ class InterActorTest {
         var received = new CopyOnWriteArrayList<String>();
 
         // Parent spawns a child actor on its first message, then forwards to it.
-        ActorRef<String> parent = system.spawn("parent", (msg, ctx) -> {
+        Ref<String> parent = system.spawn("parent", (msg, ctx) -> {
             Actor<String> childActor = (m, c) -> received.add("child:" + m);
-            ActorRef<String> child = ctx.system().spawn("child", childActor);
+            Ref<String> child = ctx.system().spawn("child", childActor);
             child.tell(msg);
         });
 
@@ -47,7 +47,7 @@ class InterActorTest {
     void lookupReturnsRefForSpawnedActor() {
         system.spawn("known", (msg, ctx) -> {});
 
-        Optional<ActorRef<String>> ref = system.lookup("known");
+        Optional<Ref<String>> ref = system.lookup("known");
         assertThat(ref).isPresent();
         assertThat(ref.get().actorId()).isEqualTo("known");
     }
@@ -60,20 +60,20 @@ class InterActorTest {
 
     @Test
     void isAliveReturnsTrueWhileRunning() {
-        ActorRef<String> actor = system.spawn("alive-check", (msg, ctx) -> {});
+        Ref<String> actor = system.spawn("alive-check", (msg, ctx) -> {});
         assertThat(actor.isAlive()).isTrue();
     }
 
     @Test
     void isAliveReturnsFalseAfterStop() throws Exception {
-        ActorRef<String> actor = system.spawn("dying", (msg, ctx) -> {});
+        Ref<String> actor = system.spawn("dying", (msg, ctx) -> {});
         actor.stop().get(5, TimeUnit.SECONDS);
         assertThat(actor.isAlive()).isFalse();
     }
 
     @Test
     void askWithTimeoutCompletesNormally() throws Exception {
-        ActorRef<String> actor = system.spawn("timed-ask",
+        Ref<String> actor = system.spawn("timed-ask",
                 (msg, ctx) -> ctx.reply(msg.toUpperCase()));
 
         String reply = actor.<String>ask("ping", java.time.Duration.ofSeconds(5)).get(5, TimeUnit.SECONDS);
@@ -82,7 +82,7 @@ class InterActorTest {
 
     @Test
     void askWithTimeoutExpiresWhenNoReply() {
-        ActorRef<String> actor = system.spawn("no-reply", (msg, ctx) -> { /* deliberately no reply */ });
+        Ref<String> actor = system.spawn("no-reply", (msg, ctx) -> { /* deliberately no reply */ });
 
         var future = actor.<String>ask("ping", java.time.Duration.ofMillis(200));
         org.junit.jupiter.api.Assertions.assertThrows(Exception.class,

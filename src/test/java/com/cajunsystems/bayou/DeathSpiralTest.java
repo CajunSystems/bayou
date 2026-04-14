@@ -76,7 +76,7 @@ class DeathSpiralTest {
 
         // Actor recovers on 4th preStart — both actor and supervisor stay alive
         await().atMost(5, TimeUnit.SECONDS).until(() ->
-            system.lookup("worker").map(ActorRef::isAlive).orElse(false));
+            system.lookup("worker").map(Ref::isAlive).orElse(false));
 
         assertThat(sup.isAlive()).isTrue();
         assertThat(preStarts.get()).isEqualTo(4);
@@ -112,7 +112,7 @@ class DeathSpiralTest {
         assertThat(system.lookup("crasher")).isEmpty();
 
         // System remains operational — can still spawn new actors
-        ActorRef<String> probe = system.spawn("probe", (msg, ctx) -> {});
+        Ref<String> probe = system.spawn("probe", (msg, ctx) -> {});
         assertThat(probe.isAlive()).isTrue();
     }
 

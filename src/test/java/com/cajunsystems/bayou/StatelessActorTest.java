@@ -30,7 +30,7 @@ class StatelessActorTest {
     @Test
     void tellDeliverMessagesInOrder() {
         var received = new CopyOnWriteArrayList<String>();
-        ActorRef<String> actor = system.spawn("echo", (msg, ctx) -> received.add(msg));
+        Ref<String> actor = system.spawn("echo", (msg, ctx) -> received.add(msg));
 
         actor.tell("a");
         actor.tell("b");
@@ -42,7 +42,7 @@ class StatelessActorTest {
 
     @Test
     void askReturnsReply() throws Exception {
-        ActorRef<String> actor = system.spawn("upper", (msg, ctx) -> ctx.reply(msg.toUpperCase()));
+        Ref<String> actor = system.spawn("upper", (msg, ctx) -> ctx.reply(msg.toUpperCase()));
 
         CompletableFuture<String> future = actor.ask("hello");
         assertThat(future.get(5, TimeUnit.SECONDS)).isEqualTo("HELLO");
@@ -52,14 +52,14 @@ class StatelessActorTest {
     void lambdaImplementsActor() {
         // Actor is @FunctionalInterface — verify lambda works
         Actor<Integer> noop = (msg, ctx) -> {};
-        ActorRef<Integer> ref = system.spawn("noop", noop);
+        Ref<Integer> ref = system.spawn("noop", noop);
         ref.tell(42); // should not throw
     }
 
     @Test
     void preStartAndPostStopAreCalled() throws Exception {
         var events = new CopyOnWriteArrayList<String>();
-        ActorRef<String> actor = system.spawn("lifecycle", new Actor<>() {
+        Ref<String> actor = system.spawn("lifecycle", new Actor<>() {
             @Override public void handle(String msg, BayouContext ctx) { events.add("msg:" + msg); }
             @Override public void preStart(BayouContext ctx)  { events.add("start"); }
             @Override public void postStop(BayouContext ctx)  { events.add("stop"); }
@@ -76,7 +76,7 @@ class StatelessActorTest {
     @Test
     void errorInHandlerCallsOnError() throws Exception {
         var errorCaptured = new AtomicInteger(0);
-        ActorRef<String> actor = system.spawn("faulty", new Actor<>() {
+        Ref<String> actor = system.spawn("faulty", new Actor<>() {
             @Override public void handle(String msg, BayouContext ctx) {
                 throw new RuntimeException("boom");
             }

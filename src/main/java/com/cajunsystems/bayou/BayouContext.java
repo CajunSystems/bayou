@@ -19,8 +19,8 @@ public interface BayouContext {
     Logger logger();
 
     /**
-     * Completes an in-flight {@link ActorRef#ask} request with the supplied value.
-     * Has no effect when the current message was delivered via {@link ActorRef#tell}.
+     * Completes an in-flight {@link Ref#ask} request with the supplied value.
+     * Has no effect when the current message was delivered via {@link Ref#tell}.
      */
     void reply(Object value);
 }

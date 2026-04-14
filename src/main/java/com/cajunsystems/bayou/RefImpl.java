@@ -3,13 +3,13 @@ package com.cajunsystems.bayou;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Package-private {@link ActorRef} implementation backed by an {@link AbstractActorRunner}.
+ * Package-private {@link Ref} implementation backed by an {@link AbstractActorRunner}.
  */
-final class ActorRefImpl<M> implements ActorRef<M> {
+final class RefImpl<M> implements Ref<M> {
 
     private final AbstractActorRunner<M> runner;
 
-    ActorRefImpl(AbstractActorRunner<M> runner) {
+    RefImpl(AbstractActorRunner<M> runner) {
         this.runner = runner;
     }
 

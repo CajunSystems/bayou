@@ -11,7 +11,7 @@ import com.cajunsystems.bayou.BayouContext;
  *
  * <pre>{@code
  * BayouSystem system = ...;
- * ActorRef<String> greeter = system.spawn("greeter", (msg, ctx) ->
+ * Ref<String> greeter = system.spawn("greeter", (msg, ctx) ->
  *     ctx.logger().info("Hello, {}!", msg));
  * greeter.tell("World");
  * }</pre>

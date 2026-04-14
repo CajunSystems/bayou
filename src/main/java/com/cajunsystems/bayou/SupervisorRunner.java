@@ -101,22 +101,22 @@ final class SupervisorRunner extends AbstractActorRunner<ChildCrash> {
      * Spawn a new child under this supervisor at runtime.
      * Thread-safe: may be called from any thread.
      */
-    ActorRef<?> spawnChild(ChildSpec spec) {
-        ActorRef<?> ref = startAndRegister(spec);
+    Ref<?> spawnChild(ChildSpec spec) {
+        Ref<?> ref = startAndRegister(spec);
         logger.info("Supervisor '{}': dynamically spawned child '{}'", actorId, spec.actorId());
         return ref;
     }
 
     // ── Internal helpers ───────────────────────────────────────────────────────
 
-    private ActorRef<?> startAndRegister(ChildSpec spec) {
+    private Ref<?> startAndRegister(ChildSpec spec) {
         AbstractActorRunner<?> runner = createChildRunner(spec);
         runner.setCrashListener(crash -> this.tell(crash));
         runner.start();
         childRunners.add(runner);
-        ActorRef<?> ref = (runner instanceof SupervisorRunner sr)
+        Ref<?> ref = (runner instanceof SupervisorRunner sr)
                 ? sr.toSupervisorRef()
-                : runner.toActorRef();
+                : runner.toRef();
         context.system().registerActor(spec.actorId(), ref);
         return ref;
     }
@@ -147,6 +147,6 @@ final class SupervisorRunner extends AbstractActorRunner<ChildCrash> {
     // ── Public ref ─────────────────────────────────────────────────────────────
 
     SupervisorRef toSupervisorRef() {
-        return new SupervisorActorRefImpl(this);
+        return new SupervisorRefImpl(this);
     }
 }

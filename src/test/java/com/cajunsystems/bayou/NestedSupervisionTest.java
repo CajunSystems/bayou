@@ -55,10 +55,10 @@ class NestedSupervisionTest {
 
         // Grandchild recovers after restart by its direct supervisor
         await().atMost(5, TimeUnit.SECONDS).until(() ->
-            system.lookup("grandchild").map(ActorRef::isAlive).orElse(false));
+            system.lookup("grandchild").map(Ref::isAlive).orElse(false));
 
-        assertThat(system.lookup("child-sup").map(ActorRef::isAlive)).contains(true);
-        assertThat(system.lookup("parent").map(ActorRef::isAlive)).contains(true);
+        assertThat(system.lookup("child-sup").map(Ref::isAlive)).contains(true);
+        assertThat(system.lookup("parent").map(Ref::isAlive)).contains(true);
     }
 
     @Test
@@ -100,7 +100,7 @@ class NestedSupervisionTest {
 
         // Parent remains alive; child supervisor dead, grandchild unregistered
         assertThat(parent.isAlive()).isTrue();
-        assertThat(system.lookup("child-sup").map(ActorRef::isAlive)).contains(false);
+        assertThat(system.lookup("child-sup").map(Ref::isAlive)).contains(false);
         assertThat(system.lookup("grandchild")).isEmpty();
     }
 }

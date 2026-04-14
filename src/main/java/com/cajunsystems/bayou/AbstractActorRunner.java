@@ -151,7 +151,7 @@ abstract class AbstractActorRunner<M> {
 
     // ── ActorRef bridge ──────────────────────────────────────────────────────
 
-    final ActorRef<M> toActorRef() {
-        return new ActorRefImpl<>(this);
+    final Ref<M> toRef() {
+        return new RefImpl<>(this);
     }
 }

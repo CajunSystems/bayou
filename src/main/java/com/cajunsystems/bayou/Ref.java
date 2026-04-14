@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @param <M> the message type accepted by the actor
  */
-public interface ActorRef<M> {
+public interface Ref<M> {
 
     /** The stable identity of this actor within the system. */
     String actorId();

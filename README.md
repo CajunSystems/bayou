@@ -51,7 +51,7 @@ For tests, swap in `InMemoryPersistenceAdapter`.
 No state, no log interaction. The right default — use it for everything that doesn't need durability.
 
 ```java
-ActorRef<String> greeter = system.spawn("greeter",
+Ref<String> greeter = system.spawn("greeter",
         (msg, ctx) -> ctx.logger().info("Hello, {}!", msg));
 
 greeter.tell("World");
@@ -121,7 +121,7 @@ class BankAccount implements EventSourcedActor<Balance, BankEvent, BankCmd> {
     }
 }
 
-ActorRef<BankCmd> account = system.spawnEventSourced(
+Ref<BankCmd> account = system.spawnEventSourced(
         "account-42", new BankAccount(), new JavaSerializer<>());
 
 account.tell(new BankCmd.Deposit(10_00));
@@ -168,7 +168,7 @@ class WordCounter implements StatefulActor<Tally, TallyCmd> {
 }
 
 // snapshot every 100 messages (default), or specify your own interval
-ActorRef<TallyCmd> counter = system.spawnStateful(
+Ref<TallyCmd> counter = system.spawnStateful(
         "word-counter", new WordCounter(), new JavaSerializer<>());
 
 counter.tell(new TallyCmd.Count("hello"));
@@ -245,7 +245,7 @@ SupervisorRef ref = system.spawnSupervisor("my-supervisor", new SupervisorActor(
 });
 ```
 
-`SupervisorRef` extends `ActorRef<Void>` — supervisors don't accept user messages. Use `ref.stop()` to stop the supervisor and all its children.
+`SupervisorRef` extends `Ref<Void>` — supervisors don't accept user messages. Use `ref.stop()` to stop the supervisor and all its children.
 
 ### Supervision strategies
 

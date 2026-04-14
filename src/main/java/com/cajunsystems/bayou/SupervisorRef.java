@@ -6,7 +6,7 @@ package com.cajunsystems.bayou;
  *
  * <p>Stopping a supervisor gracefully stops all its children first.
  */
-public interface SupervisorRef extends ActorRef<Void> {
+public interface SupervisorRef extends Ref<Void> {
     // Inherits: actorId(), isAlive(), stop()
     // tell(Void) is a no-op; ask(Void) completes exceptionally
 
@@ -14,7 +14,7 @@ public interface SupervisorRef extends ActorRef<Void> {
      * Spawn a new child under this supervisor. The child starts immediately and is
      * supervised according to this supervisor's strategy.
      *
-     * <p>The returned reference is typed to {@code ActorRef<?>}; cast to the concrete
+     * <p>The returned reference is typed to {@code Ref<?>}; cast to the concrete
      * message type if needed, or look the child up via
      * {@link BayouSystem#lookup(String) system.lookup(actorId)}.
      *
@@ -22,5 +22,5 @@ public interface SupervisorRef extends ActorRef<Void> {
      * @return a reference to the newly spawned child
      * @throws IllegalArgumentException if an actor with the same ID is already registered
      */
-    ActorRef<?> spawnChild(ChildSpec spec);
+    Ref<?> spawnChild(ChildSpec spec);
 }
