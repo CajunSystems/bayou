@@ -93,9 +93,10 @@ class NestedSupervisionTest {
             }
         });
 
-        // Child supervisor escalates → parent stops it permanently (it becomes dead, not removed)
+        // Wait for child-sup to be dead AND grandchild deregistered (cleanup() runs after isAlive=false)
         await().atMost(10, TimeUnit.SECONDS).until(() ->
-            system.lookup("child-sup").map(ref -> !ref.isAlive()).orElse(false));
+            system.lookup("child-sup").map(ref -> !ref.isAlive()).orElse(false)
+            && system.lookup("grandchild").isEmpty());
 
         // Parent remains alive; child supervisor dead, grandchild unregistered
         assertThat(parent.isAlive()).isTrue();

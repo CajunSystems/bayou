@@ -42,12 +42,13 @@ class DeathSpiralTest {
             }
         });
 
-        // Supervisor should die after 3 restarts (4 preStart calls total)
-        await().atMost(10, TimeUnit.SECONDS).until(() -> !sup.isAlive());
+        // Wait for supervisor to fully stop: isAlive=false happens before cleanup(),
+        // so also wait for cleanup() to deregister the child.
+        await().atMost(10, TimeUnit.SECONDS).until(() ->
+            !sup.isAlive() && system.lookup("crasher").isEmpty());
 
         // Exactly 4 preStart calls: initial + 3 restarts; 4th crash triggers ESCALATE
         assertThat(preStarts.get()).isEqualTo(4);
-        // cleanup() unregisters children — crasher is no longer in the system
         assertThat(system.lookup("crasher")).isEmpty();
     }
 
@@ -103,11 +104,11 @@ class DeathSpiralTest {
             }
         });
 
-        // Supervisor and child both stop; system does not throw
-        await().atMost(5, TimeUnit.SECONDS).until(() -> !sup.isAlive());
+        // Wait for supervisor to fully stop including cleanup() deregistering the child
+        await().atMost(5, TimeUnit.SECONDS).until(() ->
+            !sup.isAlive() && system.lookup("crasher").isEmpty());
 
         assertThat(sup.isAlive()).isFalse();
-        // cleanup() unregisters children — crasher is no longer in the system
         assertThat(system.lookup("crasher")).isEmpty();
 
         // System remains operational — can still spawn new actors
@@ -147,12 +148,12 @@ class DeathSpiralTest {
             }
         });
 
-        // Supervisor should die after maxRestarts exceeded
-        await().atMost(10, TimeUnit.SECONDS).until(() -> !sup.isAlive());
+        // Wait for supervisor to fully stop including cleanup() deregistering both children
+        await().atMost(10, TimeUnit.SECONDS).until(() ->
+            !sup.isAlive() && system.lookup("a").isEmpty() && system.lookup("b").isEmpty());
 
         // A crashed 3 times: initial + 2 restarts; 3rd crash triggers ESCALATE
         assertThat(aPreStarts.get()).isEqualTo(3);
-        // Supervisor is dead; both children unregistered
         assertThat(system.lookup("a")).isEmpty();
         assertThat(system.lookup("b")).isEmpty();
     }
