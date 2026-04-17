@@ -76,10 +76,13 @@ public final class BayouTopic<M> {
 
     /**
      * Subscribe from the very beginning of the topic log, receiving all historical entries
-     * followed by live messages. Equivalent to {@code subscribeFrom(0, subscriber)}.
+     * followed by live messages. Equivalent to {@code subscribeFrom(-1, subscriber)}.
+     *
+     * <p>Uses offset {@code -1} because gumbo seqnums are 0-indexed; {@code readAfter(-1)}
+     * returns all entries starting from seqnum 0.
      */
     public void subscribeFromBeginning(Ref<M> subscriber) {
-        subscribeFrom(0, subscriber);
+        subscribeFrom(-1, subscriber);
     }
 
     /**
