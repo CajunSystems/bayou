@@ -3,6 +3,7 @@ package com.cajunsystems.bayou;
 import com.cajunsystems.bayou.actor.EventSourcedActor;
 import com.cajunsystems.bayou.actor.StatefulActor;
 import com.cajunsystems.bayou.actor.Actor;
+import com.cajunsystems.bayou.actor.StateMachineActor;
 import com.cajunsystems.gumbo.api.SharedLog;
 
 import java.util.List;
@@ -261,6 +262,47 @@ public class BayouSystem implements AutoCloseable {
         var runner = new SupervisorRunner(actorId, this, supervisorActor.strategy(), children, MailboxConfig.unbounded());
         runner.start();
         SupervisorRef ref = runner.toSupervisorRef();
+        actors.put(actorId, ref);
+        runners.put(actorId, runner);
+        return ref;
+    }
+
+    // ── Spawn: state machine ─────────────────────────────────────────────────
+
+    /**
+     * Spawn a finite state machine actor.
+     *
+     * <p>The actor starts in {@code initialState}; {@link StateMachineActor#onEnter} is called
+     * for the initial state during startup before the first message is delivered.
+     *
+     * @param actorId      unique identity within this system
+     * @param actor        FSM implementation
+     * @param initialState the state the actor begins in
+     * @param <S>          state type (typically an {@code enum})
+     * @param <M>          message type
+     * @return a reference for sending messages
+     */
+    public <S, M> Ref<M> spawnStateMachine(String actorId, StateMachineActor<S, M> actor, S initialState) {
+        return spawnStateMachine(actorId, actor, initialState, MailboxConfig.unbounded());
+    }
+
+    /**
+     * Spawn a finite state machine actor with a custom mailbox configuration.
+     *
+     * @param actorId       unique identity within this system
+     * @param actor         FSM implementation
+     * @param initialState  the state the actor begins in
+     * @param mailboxConfig mailbox capacity and overflow strategy
+     * @param <S>           state type (typically an {@code enum})
+     * @param <M>           message type
+     * @return a reference for sending messages
+     */
+    public <S, M> Ref<M> spawnStateMachine(String actorId, StateMachineActor<S, M> actor, S initialState,
+                                            MailboxConfig mailboxConfig) {
+        checkNotDuplicate(actorId);
+        var runner = new StateMachineActorRunner<>(actorId, this, actor, initialState, mailboxConfig);
+        runner.start();
+        Ref<M> ref = runner.toRef();
         actors.put(actorId, ref);
         runners.put(actorId, runner);
         return ref;
