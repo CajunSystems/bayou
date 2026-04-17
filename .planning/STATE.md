@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 7: Timer Messages** — not started
+**Phase 8: Death Watch & Linking** — not started
 
 ## Phase Status
 
@@ -14,7 +14,7 @@
 | 4 — Restart Mechanics | complete | 04-01-SUMMARY.md |
 | 5 — Death Spiral Guard | complete | 05-01-SUMMARY.md |
 | 6 — Testing & Polish | complete | 06-01-SUMMARY.md, 06-02-SUMMARY.md, 06-03-SUMMARY.md |
-| 7 — Timer Messages | not started | |
+| 7 — Timer Messages | complete | 07-01-SUMMARY.md |
 | 8 — Death Watch & Linking | not started | |
 | 9 — Back-pressure | not started | |
 | 10 — PubSub / Process Groups | not started | |
@@ -22,9 +22,15 @@
 
 ## Last Action
 
-Milestone 2 created — 2026-04-17
+Phase 7 complete — 2026-04-17
 
 ## Accumulated Decisions
+
+- `BayouContext<M>` is now generic — enables type-safe `scheduleOnce(Duration, M)` / `schedulePeriodic(Duration, M)` without casts; lambda actors unaffected
+- Timer delivery via `runner.tell(message)` directly — bypasses `Ref` layer; context holds `AbstractActorRunner<M> runner` field set in constructor via `setRunner(this)`
+- Active timers tracked in `AbstractActorRunner.activeTimers` (ConcurrentHashMap key set); cancelled in `finally` block before `cleanup()` on actor stop
+- `ScheduledExecutorService` in `BayouSystem` uses single-threaded platform daemon thread — more reliable for timing than virtual threads
+- One-shot timers self-remove from `activeTimers` after firing to prevent set growth
 
 - `ChildCrash` carries the runner reference — used in Phase 4 restart: `crash.runner().restart()`
 - `Consumer<ChildCrash>` used for listener (no custom interface needed)
@@ -53,4 +59,4 @@ Milestone 2 created — 2026-04-17
 
 ## Active Plan
 
-Phase 7, Plan 1: Timer Messages — `07-01-PLAN.md`
+None — Phase 8 not yet planned.
