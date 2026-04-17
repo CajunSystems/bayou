@@ -108,4 +108,8 @@ Phase 15, Plan 1 complete — 2026-04-17
 
 ## Active Plan
 
-None — Phase 16 not yet planned.
+Phase 16, Plan 1 — `.planning/phases/16-developer-experience-docs/16-01-PLAN.md`
+
+Phase 16 has 2 plans total:
+- 16-01: Exception messages + CHANGELOG + getting-started + actor-flavours + testing docs
+- 16-02: persistent-pubsub + supervision + patterns docs + README overhaul
