@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 14: Message Replay** — planned
+**Phase 14: Message Replay** — complete
 
 ## Phase Status
 
@@ -22,13 +22,13 @@
 | **Milestone 3** | | |
 | 12 — Persistent Topic Core | complete | 12-01-PLAN.md, 12-01-SUMMARY.md |
 | 13 — Durable Subscriptions | complete | 13-01-SUMMARY.md |
-| 14 — Message Replay | planned | 14-01-PLAN.md |
+| 14 — Message Replay | complete | 14-01-SUMMARY.md |
 | 15 — TestKit | not started | |
 | 16 — Developer Experience & Docs | not started | |
 
 ## Last Action
 
-Phase 13, Plan 1 complete — 2026-04-17
+Phase 14, Plan 1 complete — 2026-04-17
 
 ## Accumulated Decisions
 
@@ -93,6 +93,13 @@ Phase 13, Plan 1 complete — 2026-04-17
 - `TopicActor.durableSubscribers` HashMap — position stored as KV `"sub:" + subscriptionId` on the topic's LogView; `readAfter(storedSeqnum)` replays on reconnect; `getLatestSeqnum()` records join point for new subscriptions; dead durable refs removed from map without advancing position
 - `BayouTopic.subscribe(String, Ref<M>)` and `unsubscribeDurable(String)` — public durable subscription API
 
+## Accumulated Decisions (continued)
+
+- `LogView` creation moved to `BayouSystem.topic()` and passed to both `TopicActor` (constructor) and `BayouTopic` (field); `TopicActor.preStart` removed
+- `TopicCommand.SubscribeFrom<M>(long offset, Ref<M>)` — `handleSubscribeFrom` calls `readAfter(offset)`, delivers replay in-order, then adds to `liveSubscribers`
+- `BayouTopic.subscribeFrom(long, Ref<M>)`, `subscribeFromBeginning(Ref<M>)`, `latestOffset()` — public replay API; `latestOffset()` calls `logView.getLatestSeqnum()` synchronously
+- `subscribeFromBeginning` uses `subscribeFrom(-1, subscriber)` because gumbo seqnums are 0-indexed; `readAfter(-1)` returns all entries (including seqnum 0), while `readAfter(0)` would skip the first entry
+
 ## Active Plan
 
-Phase 14, Plan 1 — `.planning/phases/14-message-replay/14-01-PLAN.md`
+None — Phase 15 not yet planned.
