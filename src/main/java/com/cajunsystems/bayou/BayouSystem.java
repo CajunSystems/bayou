@@ -4,7 +4,9 @@ import com.cajunsystems.bayou.actor.EventSourcedActor;
 import com.cajunsystems.bayou.actor.StatefulActor;
 import com.cajunsystems.bayou.actor.Actor;
 import com.cajunsystems.bayou.actor.StateMachineActor;
+import com.cajunsystems.gumbo.api.LogView;
 import com.cajunsystems.gumbo.api.SharedLog;
+import com.cajunsystems.gumbo.core.LogTag;
 
 import java.util.List;
 import java.util.Optional;
@@ -381,9 +383,9 @@ public class BayouSystem implements AutoCloseable {
     @SuppressWarnings("unchecked")
     public <M> BayouTopic<M> topic(String name, BayouSerializer<M> serializer) {
         return (BayouTopic<M>) topics.computeIfAbsent(name, k -> {
-            String actorId = "bayou-topic-" + k;
-            Ref<TopicCommand<M>> ref = spawn(actorId, new TopicActor<>(k, serializer));
-            return new BayouTopic<>(ref);
+            LogView logView = sharedLog.getView(LogTag.of("bayou.topic", k));
+            Ref<TopicCommand<M>> ref = spawn("bayou-topic-" + k, new TopicActor<>(k, serializer, logView));
+            return new BayouTopic<>(ref, logView);
         });
     }
 

@@ -1,5 +1,7 @@
 package com.cajunsystems.bayou;
 
+import com.cajunsystems.gumbo.api.LogView;
+
 /**
  * A durable, log-backed topic that survives process restarts.
  *
@@ -14,9 +16,11 @@ package com.cajunsystems.bayou;
 public final class BayouTopic<M> {
 
     private final Ref<TopicCommand<M>> actorRef;
+    private final LogView logView;
 
-    BayouTopic(Ref<TopicCommand<M>> actorRef) {
+    BayouTopic(Ref<TopicCommand<M>> actorRef, LogView logView) {
         this.actorRef = actorRef;
+        this.logView = logView;
     }
 
     /**
@@ -57,5 +61,32 @@ public final class BayouTopic<M> {
      */
     public void unsubscribeDurable(String subscriptionId) {
         actorRef.tell(new TopicCommand.UnsubscribeDurable<>(subscriptionId));
+    }
+
+    /**
+     * Subscribe and replay all log entries with seqnum greater than {@code offset}, then receive
+     * future messages live. Replay completes before any new publish is delivered to this subscriber.
+     *
+     * <p>Pass {@code offset = 0} (or use {@link #subscribeFromBeginning}) to receive all history.
+     * Pass {@code offset = latestOffset()} to receive only future messages.
+     */
+    public void subscribeFrom(long offset, Ref<M> subscriber) {
+        actorRef.tell(new TopicCommand.SubscribeFrom<>(offset, subscriber));
+    }
+
+    /**
+     * Subscribe from the very beginning of the topic log, receiving all historical entries
+     * followed by live messages. Equivalent to {@code subscribeFrom(0, subscriber)}.
+     */
+    public void subscribeFromBeginning(Ref<M> subscriber) {
+        subscribeFrom(0, subscriber);
+    }
+
+    /**
+     * Returns the seqnum of the most recently appended entry, or {@code 0} if the topic is empty.
+     * Use as the {@code offset} argument to {@link #subscribeFrom} to receive only future messages.
+     */
+    public long latestOffset() {
+        return logView.getLatestSeqnum();
     }
 }

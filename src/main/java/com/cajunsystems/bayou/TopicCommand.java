@@ -23,4 +23,7 @@ sealed interface TopicCommand<M> {
 
     /** Cancel a durable subscription and forget its stored position. */
     record UnsubscribeDurable<M>(String subscriptionId) implements TopicCommand<M> {}
+
+    /** Subscribe and replay all entries with seqnum > {@code offset}, then receive live messages. */
+    record SubscribeFrom<M>(long offset, Ref<M> subscriber) implements TopicCommand<M> {}
 }

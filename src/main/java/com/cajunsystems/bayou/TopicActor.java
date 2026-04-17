@@ -4,7 +4,6 @@ import com.cajunsystems.bayou.actor.Actor;
 import com.cajunsystems.gumbo.api.LogView;
 import com.cajunsystems.gumbo.core.AppendResult;
 import com.cajunsystems.gumbo.core.LogEntry;
-import com.cajunsystems.gumbo.core.LogTag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,16 +44,12 @@ final class TopicActor<M> implements Actor<TopicCommand<M>> {
     private final CopyOnWriteArrayList<Ref<M>> liveSubscribers = new CopyOnWriteArrayList<>();
     private final HashMap<String, Ref<M>> durableSubscribers = new HashMap<>();
 
-    private LogView logView;
+    private final LogView logView;
 
-    TopicActor(String name, BayouSerializer<M> serializer) {
+    TopicActor(String name, BayouSerializer<M> serializer, LogView logView) {
         this.name = name;
         this.serializer = serializer;
-    }
-
-    @Override
-    public void preStart(BayouContext<TopicCommand<M>> ctx) {
-        logView = ctx.system().sharedLog().getView(LogTag.of("bayou.topic", name));
+        this.logView = logView;
     }
 
     @Override
@@ -67,7 +62,24 @@ final class TopicActor<M> implements Actor<TopicCommand<M>> {
                 handleSubscribeDurable(sub.subscriptionId(), sub.subscriber(), ctx);
             case TopicCommand.UnsubscribeDurable<M> unsub ->
                 handleUnsubscribeDurable(unsub.subscriptionId(), ctx);
+            case TopicCommand.SubscribeFrom<M> sf ->
+                handleSubscribeFrom(sf.offset(), sf.subscriber(), ctx);
         }
+    }
+
+    private void handleSubscribeFrom(long offset, Ref<M> subscriber,
+                                      BayouContext<TopicCommand<M>> ctx) {
+        try {
+            List<LogEntry> entries = logView.readAfter(offset).join();
+            for (LogEntry entry : entries) {
+                try {
+                    subscriber.tell(serializer.deserialize(entry.dataUnsafe()));
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception e) {
+            ctx.logger().error("Topic '{}': failed to replay from offset {}", name, offset, e);
+        }
+        liveSubscribers.add(subscriber);
     }
 
     private static byte[] longToBytes(long value) {
