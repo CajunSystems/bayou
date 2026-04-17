@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 12: Persistent Topic Core** — not started  *(Milestone 3 begins)*
+**Phase 12: Persistent Topic Core** — planned  *(Milestone 3 begins)*
 
 ## Phase Status
 
@@ -20,7 +20,7 @@
 | 10 — PubSub / Process Groups | complete | 10-01-SUMMARY.md |
 | 11 — GenStateMachine / FSM | complete | 11-01-SUMMARY.md |
 | **Milestone 3** | | |
-| 12 — Persistent Topic Core | not started | |
+| 12 — Persistent Topic Core | planned | 12-01-PLAN.md |
 | 13 — Durable Subscriptions | not started | |
 | 14 — Message Replay | not started | |
 | 15 — TestKit | not started | |
@@ -87,4 +87,4 @@ Milestone 3 created — 2026-04-17
 
 ## Active Plan
 
-None — Phase 12 not yet planned.
+Phase 12, Plan 1 — `.planning/phases/12-persistent-topic-core/12-01-PLAN.md`
