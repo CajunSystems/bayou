@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 9: Back-pressure** — complete
+**Phase 10: PubSub / Process Groups** — in progress (1 plan ready)
 
 ## Phase Status
 
@@ -17,12 +17,12 @@
 | 7 — Timer Messages | complete | 07-01-SUMMARY.md |
 | 8 — Death Watch & Linking | complete | 08-01-SUMMARY.md, 08-02-SUMMARY.md |
 | 9 — Back-pressure | complete | 09-01-SUMMARY.md |
-| 10 — PubSub / Process Groups | not started | |
+| 10 — PubSub / Process Groups | in progress | 10-01-PLAN.md ready |
 | 11 — GenStateMachine / FSM | not started | |
 
 ## Last Action
 
-Phase 9 complete — 2026-04-17
+Phase 10 plan created — 2026-04-17
 
 ## Accumulated Decisions
 
@@ -73,4 +73,4 @@ Phase 9 complete — 2026-04-17
 
 ## Active Plan
 
-None — Phase 10 not yet planned.
+`.planning/phases/10-pubsub-process-groups/10-01-PLAN.md` — ready to execute.

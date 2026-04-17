@@ -151,7 +151,7 @@ Add core Erlang/Elixir ecosystem primitives to Bayou. Five phases delivering tim
 
 ---
 
-### Phase 10: PubSub / Process Groups
+### Phase 10: PubSub / Process Groups *(1 plan)*
 **Goal:** Named topic-based publish/subscribe — actors join groups; any publisher broadcasts to all members.
 
 - `system.pubsub()` returns a `BayouPubSub` registry (one per `BayouSystem`)
