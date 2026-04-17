@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 12: Persistent Topic Core** — planned  *(Milestone 3 begins)*
+**Phase 12: Persistent Topic Core** — complete  *(Milestone 3 begins)*
 
 ## Phase Status
 
@@ -20,7 +20,7 @@
 | 10 — PubSub / Process Groups | complete | 10-01-SUMMARY.md |
 | 11 — GenStateMachine / FSM | complete | 11-01-SUMMARY.md |
 | **Milestone 3** | | |
-| 12 — Persistent Topic Core | planned | 12-01-PLAN.md |
+| 12 — Persistent Topic Core | complete | 12-01-PLAN.md, 12-01-SUMMARY.md |
 | 13 — Durable Subscriptions | not started | |
 | 14 — Message Replay | not started | |
 | 15 — TestKit | not started | |
@@ -28,7 +28,7 @@
 
 ## Last Action
 
-Milestone 3 created — 2026-04-17
+Phase 12, Plan 1 complete — 2026-04-17
 
 ## Accumulated Decisions
 
@@ -85,6 +85,10 @@ Milestone 3 created — 2026-04-17
 - `StateMachineActorRunner` tracks `currentState`; `onExit(old)` + `onEnter(new)` fire on real transitions; callback exceptions swallowed via `onError`; actor NOT crashed by callback errors
 - `BayouSystem.spawnStateMachine(id, actor, initialState)` + `...MailboxConfig` overload — consistent with all other spawn patterns
 
+- `BayouTopic<M>` public facade wrapping `TopicActor<M>` (package-private `Actor<TopicCommand<M>>`); `TopicCommand<M>` sealed interface with Publish/Subscribe/Unsubscribe records
+- `LogView` at `LogTag.of("bayou.topic", name)` — initialized in `preStart`; `publish()` appends bytes then delivers to liveSubscribers (CopyOnWriteArrayList, lazy removeIf cleanup)
+- `BayouSystem.topics` ConcurrentHashMap — `topic()` idempotent via `computeIfAbsent`; actor registered as `"bayou-topic-" + name`
+
 ## Active Plan
 
-Phase 12, Plan 1 — `.planning/phases/12-persistent-topic-core/12-01-PLAN.md`
+None — Phase 13 not yet planned.
