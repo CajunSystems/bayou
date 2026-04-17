@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 11: GenStateMachine / FSM** — complete
+**Phase 12: Persistent Topic Core** — not started  *(Milestone 3 begins)*
 
 ## Phase Status
 
@@ -19,10 +19,16 @@
 | 9 — Back-pressure | complete | 09-01-SUMMARY.md |
 | 10 — PubSub / Process Groups | complete | 10-01-SUMMARY.md |
 | 11 — GenStateMachine / FSM | complete | 11-01-SUMMARY.md |
+| **Milestone 3** | | |
+| 12 — Persistent Topic Core | not started | |
+| 13 — Durable Subscriptions | not started | |
+| 14 — Message Replay | not started | |
+| 15 — TestKit | not started | |
+| 16 — Developer Experience & Docs | not started | |
 
 ## Last Action
 
-Phase 11 complete — 2026-04-17
+Milestone 3 created — 2026-04-17
 
 ## Accumulated Decisions
 
@@ -81,4 +87,4 @@ Phase 11 complete — 2026-04-17
 
 ## Active Plan
 
-None — Milestone 2 complete.
+None — Phase 12 not yet planned.

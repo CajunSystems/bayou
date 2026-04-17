@@ -185,3 +185,92 @@ Add core Erlang/Elixir ecosystem primitives to Bayou. Five phases delivering tim
 - Hot code reloading
 - TestKit / test probes (deterministic actor testing — deferred to Milestone 3)
 - Persistent PubSub (topic subscriptions surviving restart)
+
+---
+
+# Milestone 3: Persistent PubSub & Developer Experience
+
+Replace the in-memory PubSub with a durable, log-backed topic system built on gumbo. Topics survive restarts; late subscribers can catch up on history; durable subscriptions resume from their last position automatically. Alongside this, add a TestKit for deterministic actor testing and a comprehensive documentation overhaul that makes Bayou approachable to new developers.
+
+## Phases
+
+### Phase 12: Persistent Topic Core
+**Goal:** Replace in-memory `BayouPubSub` with a `BayouTopic<M>` actor backed by gumbo. Publishing appends to the log *and* delivers to live subscribers simultaneously. Topic history survives process restarts.
+
+- `system.topic(String name, BayouSerializer<M> serializer)` — returns a `BayouTopic<M>` (idempotent; same topic name always returns the same instance)
+- `topic.publish(M message)` — appends to `bayou.topic:<name>` log view and delivers to all live subscribers
+- `topic.subscribe(Ref<M> subscriber)` — live delivery only (from "now"); existing in-memory `BayouPubSub` remains as-is for lightweight use cases
+- `topic.unsubscribe(Ref<M> subscriber)` — remove a live subscriber
+- `BayouTopic<M>` is a `StatelessActorRunner` internally — owns its `LogView`, handles publish/subscribe messages through its own mailbox
+- Tests: publish survives restart (replay count matches), multiple live subscribers, unsubscribe, topic isolation
+
+**Done when:** An actor publishes 10 messages to a topic, the process simulates a restart by recreating `BayouSystem`, and a new subscriber receives all 10 messages replayed from the log.
+
+---
+
+### Phase 13: Durable Subscriptions
+**Goal:** Named subscribers track their read position in the topic log. When a durable subscriber restarts, it automatically catches up from the last processed offset — no messages are lost or redelivered.
+
+- `topic.subscribe(String subscriptionId, Ref<M> subscriber)` — registers a durable subscription; position stored in `bayou.topic.pos:<name>:<subscriptionId>`
+- On each delivery, the subscription advances its stored offset atomically in gumbo
+- `topic.unsubscribeDurable(String subscriptionId)` — cancel and forget the position
+- Acknowledgement model: at-least-once — offset advances after successful `tell()`; actor crashes do not advance offset
+- Tests: durable subscriber misses messages during downtime, resumes from correct offset; non-durable subscriber starts fresh; two subscriptions on same topic progress independently
+
+**Done when:** Subscriber A (durable) and subscriber B (non-durable) are both subscribed. 5 messages published. B unsubscribed. 5 more published. B re-subscribes. A has all 10; B only sees the final 5.
+
+---
+
+### Phase 14: Message Replay
+**Goal:** Subscribers can request historical messages — replay from the beginning of the topic or from a specific sequence offset. Enables "new consumer catches up" and audit-log patterns.
+
+- `topic.subscribeFrom(long offset, Ref<M> subscriber)` — deliver from sequence number `offset` onwards (0 = from beginning)
+- `topic.subscribeFromBeginning(Ref<M> subscriber)` — convenience alias for `subscribeFrom(0, ref)`
+- `topic.latestOffset()` — returns the current end-of-log sequence number
+- Replay is delivered in-order before any new live messages; no gaps
+- Tests: subscribe from beginning receives all historical messages, subscribe from offset N receives only messages from N onwards, replay then live messages arrive in order
+
+**Done when:** A topic with 100 messages has a new subscriber call `subscribeFromBeginning` and receives all 100 in order, followed by a new live publish that arrives as message 101.
+
+---
+
+### Phase 15: TestKit
+**Goal:** Deterministic testing utilities for actor systems. `TestProbe<M>` is a controllable actor that records received messages and exposes synchronous assertion methods — no `CountDownLatch` or Awaitility needed for basic actor tests.
+
+- `TestProbe<M> probe = TestKit.probe(system, "probe-id")` — spawns a probe actor
+- `probe.expectMessage(M expected, Duration timeout)` — blocks until message arrives or times out
+- `probe.expectMessage(Class<M> type, Duration timeout)` — untyped variant
+- `probe.expectNoMessage(Duration within)` — asserts nothing arrives in the window
+- `probe.expectTerminated(Ref<?> ref, Duration timeout)` — assert a watched actor has stopped
+- `probe.ref()` — the `Ref<M>` for wiring into the system (subscribe to topics, link, watch)
+- Thread-safe: `expectMessage` blocks the test thread; actor thread enqueues to an internal `BlockingQueue`
+- Tests: TestKit tests itself — probe receives tell, probe receives pubsub message, expectNoMessage passes and fails correctly, expectTerminated
+
+**Done when:** A test using only `TestProbe` (no Awaitility) can spawn an actor, tell it a message, and assert the reply arrives within 1 second — one line per assertion.
+
+---
+
+### Phase 16: Developer Experience & Docs
+**Goal:** Comprehensive documentation that makes Bayou genuinely approachable. A new developer should be able to go from zero to a working actor system in under 10 minutes, and find answers to common patterns without reading source code.
+
+- `docs/` directory with dedicated guides:
+  - `getting-started.md` — from zero to first actor in 5 minutes
+  - `actor-flavours.md` — when to use stateless vs stateful vs event-sourced vs FSM
+  - `patterns.md` — request-reply, fan-out, work queues, circuit breakers, pipelines
+  - `testing.md` — how to test actors with TestKit and without
+  - `persistent-pubsub.md` — live vs durable vs replay subscriptions explained
+  - `supervision.md` — expanded supervision guide with decision tree
+- `CHANGELOG.md` — version history starting at 0.1.0
+- Better exception messages — actor ID, current state, and actionable hint in every exception
+- README overhaul — shorter, links to guides, focuses on "why Bayou" rather than API reference
+
+**Done when:** An external developer (unfamiliar with the codebase) can follow `getting-started.md` and have a working supervised, event-sourced actor publishing to a persistent topic, all within the quickstart guide.
+
+---
+
+## Out of Scope (Milestone 3)
+
+- Remote/distributed actors (cross-JVM messaging)
+- Hot code reloading
+- Schema evolution for persistent topic messages
+- Topic compaction / log truncation
