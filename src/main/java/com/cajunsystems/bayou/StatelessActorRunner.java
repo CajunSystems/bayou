@@ -9,8 +9,8 @@ final class StatelessActorRunner<M> extends AbstractActorRunner<M> {
 
     private final Actor<M> actor;
 
-    StatelessActorRunner(String actorId, BayouSystem system, Actor<M> actor) {
-        super(actorId, system);
+    StatelessActorRunner(String actorId, BayouSystem system, Actor<M> actor, MailboxConfig mailboxConfig) {
+        super(actorId, system, mailboxConfig);
         this.actor = actor;
     }
 

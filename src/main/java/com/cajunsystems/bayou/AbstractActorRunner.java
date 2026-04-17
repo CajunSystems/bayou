@@ -30,6 +30,8 @@ abstract class AbstractActorRunner<M> {
 
     final String actorId;
     private final BayouSystem system;
+    private final MailboxConfig mailboxConfig;
+    private final int mailboxCapacity;
 
     private final LinkedBlockingQueue<Envelope<M>> mailbox = new LinkedBlockingQueue<>();
     final BayouContextImpl<M> context;
@@ -49,9 +51,11 @@ abstract class AbstractActorRunner<M> {
     /** When {@code true}, {@link LinkedActorDied} signals are delivered to {@code onSignal} instead of causing a crash. */
     volatile boolean trapExits = false;
 
-    AbstractActorRunner(String actorId, BayouSystem system) {
+    AbstractActorRunner(String actorId, BayouSystem system, MailboxConfig mailboxConfig) {
         this.actorId = actorId;
         this.system = system;
+        this.mailboxConfig = mailboxConfig;
+        this.mailboxCapacity = mailboxConfig.capacity();
         this.context = new BayouContextImpl<>(actorId, system);
         this.context.setRunner(this);
     }
@@ -134,6 +138,15 @@ abstract class AbstractActorRunner<M> {
     // ── Messaging ────────────────────────────────────────────────────────────
 
     final void tell(M message) {
+        if (mailboxCapacity != Integer.MAX_VALUE && mailbox.size() >= mailboxCapacity) {
+            OverflowListener ol = mailboxConfig.listener();
+            if (ol != null) ol.onOverflow(actorId, mailboxCapacity, mailboxConfig.overflowStrategy());
+            switch (mailboxConfig.overflowStrategy()) {
+                case DROP_NEWEST -> { return; }
+                case DROP_OLDEST -> mailbox.poll();
+                case REJECT -> throw new MailboxFullException(actorId, mailboxCapacity);
+            }
+        }
         mailbox.offer(Envelope.tell(message));
     }
 

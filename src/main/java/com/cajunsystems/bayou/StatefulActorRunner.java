@@ -29,8 +29,9 @@ final class StatefulActorRunner<S, M> extends AbstractActorRunner<M> {
     StatefulActorRunner(String actorId, BayouSystem system,
                          StatefulActor<S, M> actor,
                          BayouSerializer<S> stateSerializer,
-                         int snapshotInterval) {
-        super(actorId, system);
+                         int snapshotInterval,
+                         MailboxConfig mailboxConfig) {
+        super(actorId, system, mailboxConfig);
         this.actor = actor;
         this.stateSerializer = stateSerializer;
         this.snapshotView = system.sharedLog().getView(LogTag.of("bayou.snapshots", actorId));

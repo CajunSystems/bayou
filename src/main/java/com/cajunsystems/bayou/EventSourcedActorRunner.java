@@ -26,8 +26,9 @@ final class EventSourcedActorRunner<S, E, M> extends AbstractActorRunner<M> {
 
     EventSourcedActorRunner(String actorId, BayouSystem system,
                              EventSourcedActor<S, E, M> actor,
-                             BayouSerializer<E> eventSerializer) {
-        super(actorId, system);
+                             BayouSerializer<E> eventSerializer,
+                             MailboxConfig mailboxConfig) {
+        super(actorId, system, mailboxConfig);
         this.actor = actor;
         this.eventSerializer = eventSerializer;
         this.eventView = system.sharedLog().getView(LogTag.of("bayou.events", actorId));

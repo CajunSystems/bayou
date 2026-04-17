@@ -27,8 +27,9 @@ final class SupervisorRunner extends AbstractActorRunner<ChildCrash> {
 
     SupervisorRunner(String actorId, BayouSystem system,
                      SupervisionStrategy strategy,
-                     List<ChildSpec> childSpecs) {
-        super(actorId, system);
+                     List<ChildSpec> childSpecs,
+                     MailboxConfig mailboxConfig) {
+        super(actorId, system, mailboxConfig);
         this.strategy = strategy;
         this.childSpecs = List.copyOf(childSpecs);
         this.logger = LoggerFactory.getLogger("bayou.supervisor." + actorId);
@@ -126,20 +127,23 @@ final class SupervisorRunner extends AbstractActorRunner<ChildCrash> {
     @SuppressWarnings("unchecked")
     private AbstractActorRunner<?> createChildRunner(ChildSpec spec) {
         if (spec instanceof StatelessChildSpec<?> s) {
-            return new StatelessActorRunner<>(s.actorId(), context.system(), s.actor());
+            return new StatelessActorRunner<>(s.actorId(), context.system(), s.actor(), s.mailboxConfig());
         } else if (spec instanceof StatefulChildSpec<?, ?> s) {
             return new StatefulActorRunner<>(s.actorId(), context.system(),
                     ((StatefulChildSpec<Object, Object>) s).actor(),
                     ((StatefulChildSpec<Object, Object>) s).stateSerializer(),
-                    s.snapshotInterval());
+                    s.snapshotInterval(),
+                    s.mailboxConfig());
         } else if (spec instanceof EventSourcedChildSpec<?, ?, ?> s) {
             return new EventSourcedActorRunner<>(s.actorId(), context.system(),
                     ((EventSourcedChildSpec<Object, Object, Object>) s).actor(),
-                    ((EventSourcedChildSpec<Object, Object, Object>) s).eventSerializer());
+                    ((EventSourcedChildSpec<Object, Object, Object>) s).eventSerializer(),
+                    s.mailboxConfig());
         } else if (spec instanceof SupervisorChildSpec s) {
             return new SupervisorRunner(s.actorId(), context.system(),
                     s.supervisorActor().strategy(),
-                    s.supervisorActor().children());
+                    s.supervisorActor().children(),
+                    s.mailboxConfig());
         }
         throw new IllegalStateException("Unknown ChildSpec type: " + spec.getClass());
     }

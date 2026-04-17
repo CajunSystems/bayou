@@ -29,7 +29,7 @@ class CrashSignalTest {
         var crashes = new CopyOnWriteArrayList<ChildCrash>();
 
         // A runner that throws during initialize() — simulates a fatal crash
-        var runner = new AbstractActorRunner<String>("crashing-actor", system) {
+        var runner = new AbstractActorRunner<String>("crashing-actor", system, MailboxConfig.unbounded()) {
             @Override protected void initialize() {
                 throw new RuntimeException("boom");
             }
@@ -53,7 +53,7 @@ class CrashSignalTest {
     void noSignalOnGracefulStop() throws Exception {
         var crashes = new CopyOnWriteArrayList<ChildCrash>();
 
-        var runner = new AbstractActorRunner<String>("normal-actor", system) {
+        var runner = new AbstractActorRunner<String>("normal-actor", system, MailboxConfig.unbounded()) {
             @Override protected void initialize() {}
             @Override protected void processEnvelope(Envelope<String> envelope) {}
             @Override protected void cleanup() {}
