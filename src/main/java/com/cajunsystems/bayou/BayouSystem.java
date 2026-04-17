@@ -234,6 +234,36 @@ public class BayouSystem implements AutoCloseable {
         handle.cancel();
     }
 
+    // ── Actor linking ─────────────────────────────────────────────────────────
+
+    /**
+     * Bidirectionally link two actors. If either dies (crash or graceful stop), the other
+     * receives a {@link LinkedActorDied} signal. Unless the surviving actor has
+     * {@link BayouContext#trapExits} enabled, it will also crash.
+     *
+     * <p>Linking a stopped actor or linking an actor to itself is a no-op.
+     */
+    public void link(Ref<?> a, Ref<?> b) {
+        if (a.actorId().equals(b.actorId())) return;
+        AbstractActorRunner<?> runnerA = runners.get(a.actorId());
+        AbstractActorRunner<?> runnerB = runners.get(b.actorId());
+        if (runnerA == null) throw new IllegalArgumentException("Unknown actor: " + a.actorId());
+        if (runnerB == null) throw new IllegalArgumentException("Unknown actor: " + b.actorId());
+        if (!runnerA.isAlive() || !runnerB.isAlive()) return;
+        runnerA.linkedRunners.add(runnerB);
+        runnerB.linkedRunners.add(runnerA);
+    }
+
+    /** Remove the bidirectional link between two actors. Idempotent. */
+    public void unlink(Ref<?> a, Ref<?> b) {
+        AbstractActorRunner<?> runnerA = runners.get(a.actorId());
+        AbstractActorRunner<?> runnerB = runners.get(b.actorId());
+        if (runnerA != null && runnerB != null) {
+            runnerA.linkedRunners.remove(runnerB);
+            runnerB.linkedRunners.remove(runnerA);
+        }
+    }
+
     // ── Shutdown ─────────────────────────────────────────────────────────────
 
     /**

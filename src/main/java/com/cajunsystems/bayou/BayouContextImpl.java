@@ -108,4 +108,19 @@ class BayouContextImpl<M> implements BayouContext<M> {
     public void unwatch(WatchHandle handle) {
         handle.cancel();
     }
+
+    @Override
+    public void link(Ref<?> other) {
+        system.link(runner.toRef(), other);
+    }
+
+    @Override
+    public void unlink(Ref<?> other) {
+        system.unlink(runner.toRef(), other);
+    }
+
+    @Override
+    public void trapExits(boolean flag) {
+        runner.trapExits = flag;
+    }
 }

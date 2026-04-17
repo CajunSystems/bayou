@@ -43,6 +43,12 @@ abstract class AbstractActorRunner<M> {
     /** Listeners notified with a {@link Terminated} signal when this actor stops. */
     final List<Consumer<Signal>> signalListeners = new CopyOnWriteArrayList<>();
 
+    /** Runners bidirectionally linked to this actor — each receives {@link LinkedActorDied} when this dies. */
+    final Set<AbstractActorRunner<?>> linkedRunners = ConcurrentHashMap.newKeySet();
+
+    /** When {@code true}, {@link LinkedActorDied} signals are delivered to {@code onSignal} instead of causing a crash. */
+    volatile boolean trapExits = false;
+
     AbstractActorRunner(String actorId, BayouSystem system) {
         this.actorId = actorId;
         this.system = system;
@@ -106,6 +112,16 @@ abstract class AbstractActorRunner<M> {
                 }
                 signalListeners.clear();
             }
+            // Fire LinkedActorDied to all linked runners
+            if (!linkedRunners.isEmpty()) {
+                LinkedActorDied exitSignal = new LinkedActorDied(actorId, terminalCause);
+                for (var linked : linkedRunners) {
+                    try {
+                        if (linked.isAlive()) linked.signal(exitSignal);
+                    } catch (Exception ignored) {}
+                }
+                linkedRunners.clear();
+            }
             if (terminalCause != null) {
                 var listener = crashListener;
                 if (listener != null) {
@@ -126,7 +142,9 @@ abstract class AbstractActorRunner<M> {
     }
 
     private void processSignalEnvelope(Signal signal) {
-        // Plan 2 will add: if (signal instanceof LinkedActorDied lad && !trapExits) throw ...
+        if (signal instanceof LinkedActorDied lad && !trapExits) {
+            throw new RuntimeException("Linked actor '" + lad.actorId() + "' died", lad.cause());
+        }
         handleSignal(signal);
     }
 

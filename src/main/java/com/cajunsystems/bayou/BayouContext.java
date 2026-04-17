@@ -49,4 +49,20 @@ public interface BayouContext<M> {
 
     /** Cancel a previously registered death watch. Idempotent. */
     void unwatch(WatchHandle handle);
+
+    /**
+     * Bidirectionally link this actor to {@code other}. If either dies, the other
+     * receives a {@link LinkedActorDied} signal and (unless trapping exits) also crashes.
+     */
+    void link(Ref<?> other);
+
+    /** Remove the bidirectional link between this actor and {@code other}. Idempotent. */
+    void unlink(Ref<?> other);
+
+    /**
+     * Set this actor's exit-trapping mode. When {@code true}, {@link LinkedActorDied} signals
+     * are delivered to {@code onSignal} instead of causing a crash.
+     * Default is {@code false}.
+     */
+    void trapExits(boolean flag);
 }
