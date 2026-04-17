@@ -53,4 +53,4 @@ Milestone 2 created — 2026-04-17
 
 ## Active Plan
 
-None — Phase 7 not yet planned.
+Phase 7, Plan 1: Timer Messages — `07-01-PLAN.md`
