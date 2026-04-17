@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 13: Durable Subscriptions** — complete
+**Phase 14: Message Replay** — planned
 
 ## Phase Status
 
@@ -22,7 +22,7 @@
 | **Milestone 3** | | |
 | 12 — Persistent Topic Core | complete | 12-01-PLAN.md, 12-01-SUMMARY.md |
 | 13 — Durable Subscriptions | complete | 13-01-SUMMARY.md |
-| 14 — Message Replay | not started | |
+| 14 — Message Replay | planned | 14-01-PLAN.md |
 | 15 — TestKit | not started | |
 | 16 — Developer Experience & Docs | not started | |
 
@@ -95,4 +95,4 @@ Phase 13, Plan 1 complete — 2026-04-17
 
 ## Active Plan
 
-None — Phase 14 not yet planned.
+Phase 14, Plan 1 — `.planning/phases/14-message-replay/14-01-PLAN.md`
