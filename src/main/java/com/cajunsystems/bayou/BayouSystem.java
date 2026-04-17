@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Entry point for the Bayou actor system.
@@ -37,6 +39,11 @@ public class BayouSystem implements AutoCloseable {
 
     private final SharedLog sharedLog;
     private final ConcurrentHashMap<String, Ref<?>> actors = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduledExecutor =
+        Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = Thread.ofPlatform().daemon(true).name("bayou-timer").unstarted(r);
+            return t;
+        });
 
     public BayouSystem(SharedLog sharedLog) {
         this.sharedLog = sharedLog;
@@ -46,6 +53,10 @@ public class BayouSystem implements AutoCloseable {
 
     SharedLog sharedLog() {
         return sharedLog;
+    }
+
+    ScheduledExecutorService scheduledExecutor() {
+        return scheduledExecutor;
     }
 
     /** Called by {@link SupervisorRunner} to register child actors spawned internally. */
@@ -194,6 +205,7 @@ public class BayouSystem implements AutoCloseable {
      * The log is always closed even if one or more actors fail to stop cleanly.
      */
     public void shutdown() {
+        scheduledExecutor.shutdownNow();
         CompletableFuture<?>[] stops = actors.values().stream()
                 .map(Ref::stop)
                 .toArray(CompletableFuture[]::new);

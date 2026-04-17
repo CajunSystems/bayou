@@ -25,7 +25,7 @@ import java.util.List;
  * class CounterActor implements EventSourcedActor<Counter, CounterEvent, CounterMsg> {
  *     public Counter initialState() { return new Counter(0); }
  *
- *     public List<CounterEvent> handle(Counter state, CounterMsg msg, BayouContext ctx) {
+ *     public List<CounterEvent> handle(Counter state, CounterMsg msg, BayouContext<CounterMsg> ctx) {
  *         return switch (msg) {
  *             case CounterMsg.Increment(var by) -> List.of(new CounterEvent.Incremented(by));
  *         };
@@ -53,7 +53,7 @@ public interface EventSourcedActor<S, E, M> {
      * Must be deterministic given the same {@code state} and {@code message}.
      * Return an empty list for read-only queries.
      */
-    List<E> handle(S state, M message, BayouContext context);
+    List<E> handle(S state, M message, BayouContext<M> context);
 
     /**
      * Pure fold: apply one event to the current state and return the next state.
@@ -63,16 +63,16 @@ public interface EventSourcedActor<S, E, M> {
     S apply(S state, E event);
 
     /** Called once, after replay, before the first live message is delivered. */
-    default void preStart(BayouContext context) {}
+    default void preStart(BayouContext<M> context) {}
 
     /** Called once after the actor stops. */
-    default void postStop(BayouContext context) {}
+    default void postStop(BayouContext<M> context) {}
 
     /**
      * Called when {@link #handle} or event persistence throws. Default behaviour logs the error.
      * The actor's in-memory state is not rolled back; events already appended to the log remain.
      */
-    default void onError(M message, Throwable error, BayouContext context) {
+    default void onError(M message, Throwable error, BayouContext<M> context) {
         context.logger().error("Unhandled error processing message {}", message, error);
     }
 }

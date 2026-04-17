@@ -21,7 +21,7 @@ import com.cajunsystems.bayou.BayouContext;
  * class WordCounter implements StatefulActor<Tally, String> {
  *     public Tally initialState() { return new Tally(new HashMap<>()); }
  *
- *     public Tally reduce(Tally state, String word, BayouContext ctx) {
+ *     public Tally reduce(Tally state, String word, BayouContext<String> ctx) {
  *         var next = new HashMap<>(state.counts());
  *         next.merge(word, 1, Integer::sum);
  *         return new Tally(next);
@@ -44,19 +44,19 @@ public interface StatefulActor<S, M> {
      * Pure reducer: given the current state and an incoming message, return the next state.
      * To reply to an {@code ask}, call {@link BayouContext#reply(Object)}.
      */
-    S reduce(S state, M message, BayouContext context);
+    S reduce(S state, M message, BayouContext<M> context);
 
     /** Called once, after snapshot restoration, before the first live message is delivered. */
-    default void preStart(BayouContext context) {}
+    default void preStart(BayouContext<M> context) {}
 
     /** Called once after the actor stops (a final snapshot is taken automatically). */
-    default void postStop(BayouContext context) {}
+    default void postStop(BayouContext<M> context) {}
 
     /**
      * Called when {@link #reduce} throws. The state is left unchanged.
      * Default behaviour logs the error.
      */
-    default void onError(M message, Throwable error, BayouContext context) {
+    default void onError(M message, Throwable error, BayouContext<M> context) {
         context.logger().error("Unhandled error processing message {}", message, error);
     }
 }

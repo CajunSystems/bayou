@@ -1,6 +1,8 @@
 package com.cajunsystems.bayou;
 
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -28,15 +30,19 @@ abstract class AbstractActorRunner<M> {
     private final BayouSystem system;
 
     private final LinkedBlockingQueue<Envelope<M>> mailbox = new LinkedBlockingQueue<>();
-    final BayouContextImpl context;
+    final BayouContextImpl<M> context;
     final AtomicBoolean running = new AtomicBoolean(false);
     private volatile CompletableFuture<Void> stopFuture = new CompletableFuture<>();
     private volatile Consumer<ChildCrash> crashListener;
 
+    /** Active timers scheduled on behalf of this actor. Cancelled on actor stop. */
+    final Set<TimerRefImpl> activeTimers = ConcurrentHashMap.newKeySet();
+
     AbstractActorRunner(String actorId, BayouSystem system) {
         this.actorId = actorId;
         this.system = system;
-        this.context = new BayouContextImpl(actorId, system);
+        this.context = new BayouContextImpl<>(actorId, system);
+        this.context.setRunner(this);
     }
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
@@ -74,6 +80,9 @@ abstract class AbstractActorRunner<M> {
             running.set(false);
             context.logger().error("Actor '{}' terminated unexpectedly", actorId, e);
         } finally {
+            // Cancel all active timers before calling cleanup()
+            activeTimers.forEach(TimerRef::cancel);
+            activeTimers.clear();
             try {
                 cleanup();
             } catch (Exception e) {

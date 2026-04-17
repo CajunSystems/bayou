@@ -25,19 +25,19 @@ public interface Actor<M> {
      * Process a single message. Called sequentially — never concurrently with itself.
      * To reply to an {@code ask}, call {@link BayouContext#reply(Object)}.
      */
-    void handle(M message, BayouContext context);
+    void handle(M message, BayouContext<M> context);
 
     /** Called once before the first message is delivered. */
-    default void preStart(BayouContext context) {}
+    default void preStart(BayouContext<M> context) {}
 
     /** Called once after the last message is processed and the actor has stopped. */
-    default void postStop(BayouContext context) {}
+    default void postStop(BayouContext<M> context) {}
 
     /**
      * Called when {@link #handle} throws. Default behaviour logs the error.
      * Override to implement retry, dead-letter forwarding, or escalation.
      */
-    default void onError(M message, Throwable error, BayouContext context) {
+    default void onError(M message, Throwable error, BayouContext<M> context) {
         context.logger().error("Unhandled error processing message {}", message, error);
     }
 }

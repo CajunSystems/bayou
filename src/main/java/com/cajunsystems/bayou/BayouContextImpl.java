@@ -3,19 +3,23 @@ package com.cajunsystems.bayou;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Package-private implementation of {@link BayouContext}.
  * One instance is created per actor runner and reused across all message deliveries;
  * {@link #setCurrentEnvelope} is called before each dispatch.
  */
-class BayouContextImpl implements BayouContext {
+class BayouContextImpl<M> implements BayouContext<M> {
 
     private final String actorId;
     private final BayouSystem system;
     private final Logger logger;
     private Envelope<?> currentEnvelope;
+    private AbstractActorRunner<M> runner;
 
     BayouContextImpl(String actorId, BayouSystem system) {
         this.actorId = actorId;
@@ -25,6 +29,10 @@ class BayouContextImpl implements BayouContext {
 
     void setCurrentEnvelope(Envelope<?> envelope) {
         this.currentEnvelope = envelope;
+    }
+
+    void setRunner(AbstractActorRunner<M> runner) {
+        this.runner = runner;
     }
 
     @Override
@@ -48,5 +56,41 @@ class BayouContextImpl implements BayouContext {
         if (currentEnvelope != null && currentEnvelope.isAsk()) {
             ((CompletableFuture<Object>) currentEnvelope.replyFuture()).complete(value);
         }
+    }
+
+    @Override
+    public TimerRef scheduleOnce(Duration delay, M message) {
+        @SuppressWarnings("unchecked")
+        TimerRefImpl[] holder = new TimerRefImpl[1];
+        ScheduledFuture<?> future = system.scheduledExecutor().schedule(
+            () -> {
+                runner.activeTimers.remove(holder[0]);
+                if (runner.isAlive()) {
+                    runner.tell(message);
+                }
+            },
+            delay.toMillis(),
+            TimeUnit.MILLISECONDS
+        );
+        holder[0] = new TimerRefImpl(future);
+        runner.activeTimers.add(holder[0]);
+        return holder[0];
+    }
+
+    @Override
+    public TimerRef schedulePeriodic(Duration period, M message) {
+        ScheduledFuture<?> future = system.scheduledExecutor().scheduleAtFixedRate(
+            () -> {
+                if (runner.isAlive()) {
+                    runner.tell(message);
+                }
+            },
+            period.toMillis(),
+            period.toMillis(),
+            TimeUnit.MILLISECONDS
+        );
+        TimerRefImpl ref = new TimerRefImpl(future);
+        runner.activeTimers.add(ref);
+        return ref;
     }
 }

@@ -221,7 +221,7 @@ class RestartMechanicsTest {
 
         // Dynamically spawn a child
         sup.spawnChild(ChildSpec.stateless("dynamic",
-                (String msg, BayouContext ctx) -> received.add(msg)));
+                (String msg, BayouContext<String> ctx) -> received.add(msg)));
 
         await().atMost(2, TimeUnit.SECONDS).until(() ->
                 system.lookup("dynamic").map(Ref::isAlive).orElse(false));

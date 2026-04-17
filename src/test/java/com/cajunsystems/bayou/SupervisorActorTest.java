@@ -50,7 +50,7 @@ class SupervisorActorTest {
         system.spawnSupervisor("sup", new SupervisorActor() {
             public List<ChildSpec> children() {
                 return List.of(ChildSpec.stateless("worker",
-                        (String msg, BayouContext ctx) -> received.add(msg)));
+                        (String msg, BayouContext<String> ctx) -> received.add(msg)));
             }
             public SupervisionStrategy strategy() {
                 return new OneForOneStrategy(RestartWindow.UNLIMITED);
