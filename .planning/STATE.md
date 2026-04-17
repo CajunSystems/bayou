@@ -59,4 +59,4 @@ Phase 7 complete — 2026-04-17
 
 ## Active Plan
 
-None — Phase 8 not yet planned.
+Phase 8, Plan 1: Signal Infrastructure & Death Watch — `08-01-PLAN.md`
