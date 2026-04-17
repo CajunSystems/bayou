@@ -65,4 +65,8 @@ public interface BayouContext<M> {
      * Default is {@code false}.
      */
     void trapExits(boolean flag);
+
+    /** Returns this actor's own {@link Ref} — useful for subscribing to {@link BayouPubSub} topics
+     *  from within {@code preStart} or {@code handle} without an untyped lookup. */
+    Ref<M> self();
 }

@@ -123,4 +123,9 @@ class BayouContextImpl<M> implements BayouContext<M> {
     public void trapExits(boolean flag) {
         runner.trapExits = flag;
     }
+
+    @Override
+    public Ref<M> self() {
+        return runner.toRef();
+    }
 }

@@ -46,6 +46,7 @@ public class BayouSystem implements AutoCloseable {
             Thread t = Thread.ofPlatform().daemon(true).name("bayou-timer").unstarted(r);
             return t;
         });
+    private final BayouPubSub pubsub = new BayouPubSub();
 
     public BayouSystem(SharedLog sharedLog) {
         this.sharedLog = sharedLog;
@@ -314,6 +315,11 @@ public class BayouSystem implements AutoCloseable {
             runnerA.linkedRunners.remove(runnerB);
             runnerB.linkedRunners.remove(runnerA);
         }
+    }
+
+    /** Returns the PubSub registry for this system. */
+    public BayouPubSub pubsub() {
+        return pubsub;
     }
 
     // ── Shutdown ─────────────────────────────────────────────────────────────
