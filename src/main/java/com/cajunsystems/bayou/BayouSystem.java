@@ -48,6 +48,7 @@ public class BayouSystem implements AutoCloseable {
             return t;
         });
     private final BayouPubSub pubsub = new BayouPubSub();
+    private final ConcurrentHashMap<String, BayouTopic<?>> topics = new ConcurrentHashMap<>();
 
     public BayouSystem(SharedLog sharedLog) {
         this.sharedLog = sharedLog;
@@ -362,6 +363,28 @@ public class BayouSystem implements AutoCloseable {
     /** Returns the PubSub registry for this system. */
     public BayouPubSub pubsub() {
         return pubsub;
+    }
+
+    /**
+     * Return (or create) a named durable topic.
+     *
+     * <p>The call is idempotent: the same {@link BayouTopic} instance is returned for the
+     * same {@code name} regardless of how many times this method is called.  The backing
+     * {@link TopicActor} is registered in this system under the ID
+     * {@code "bayou-topic-" + name} so it is stopped automatically by {@link #shutdown()}.
+     *
+     * @param name       stable topic name (must be unique within the system)
+     * @param serializer serializer used to persist published messages to the gumbo log
+     * @param <M>        message type
+     * @return the topic facade
+     */
+    @SuppressWarnings("unchecked")
+    public <M> BayouTopic<M> topic(String name, BayouSerializer<M> serializer) {
+        return (BayouTopic<M>) topics.computeIfAbsent(name, k -> {
+            String actorId = "bayou-topic-" + k;
+            Ref<TopicCommand<M>> ref = spawn(actorId, new TopicActor<>(k, serializer));
+            return new BayouTopic<>(ref);
+        });
     }
 
     // ── Shutdown ─────────────────────────────────────────────────────────────
