@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 15: TestKit** — planned
+**Phase 15: TestKit** — complete
 
 ## Phase Status
 
@@ -23,12 +23,12 @@
 | 12 — Persistent Topic Core | complete | 12-01-PLAN.md, 12-01-SUMMARY.md |
 | 13 — Durable Subscriptions | complete | 13-01-SUMMARY.md |
 | 14 — Message Replay | complete | 14-01-SUMMARY.md |
-| 15 — TestKit | planned | 15-01-PLAN.md |
+| 15 — TestKit | complete | 15-01-SUMMARY.md |
 | 16 — Developer Experience & Docs | not started | |
 
 ## Last Action
 
-Phase 14, Plan 1 complete — 2026-04-17
+Phase 15, Plan 1 complete — 2026-04-17
 
 ## Accumulated Decisions
 
@@ -100,6 +100,12 @@ Phase 14, Plan 1 complete — 2026-04-17
 - `BayouTopic.subscribeFrom(long, Ref<M>)`, `subscribeFromBeginning(Ref<M>)`, `latestOffset()` — public replay API; `latestOffset()` calls `logView.getLatestSeqnum()` synchronously
 - `subscribeFromBeginning` uses `subscribeFrom(-1, subscriber)` because gumbo seqnums are 0-indexed; `readAfter(-1)` returns all entries (including seqnum 0), while `readAfter(0)` would skip the first entry
 
+## Accumulated Decisions (Phase 15)
+
+- `TestProbe<M>` in `com.cajunsystems.bayou` — `LinkedBlockingQueue<M> messages` + `LinkedBlockingQueue<Signal> signals`; backed by `ProbeActor<M>` (package-private `Actor<M>`)
+- `TestKit.probe(system, id)` static factory; `expectMessage(M, Duration)`, `expectMessage(Class<T>, Duration)`, `expectNoMessage(Duration)`, `expectTerminated(Ref<?>, Duration)`
+- `expectTerminated` calls `system.watch` then polls signals queue; `InterruptedException` wrapped as `RuntimeException`; handles race where actor stops before watch is registered via `isAlive()` check and `IllegalArgumentException` catch; also pre-checks for already-queued `Terminated` signals
+
 ## Active Plan
 
-Phase 15, Plan 1 — `.planning/phases/15-testkit/15-01-PLAN.md`
+None — Phase 16 not yet planned.
