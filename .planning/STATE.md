@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 6: Testing & Polish** — complete
+**Phase 7: Timer Messages** — not started
 
 ## Phase Status
 
@@ -14,10 +14,15 @@
 | 4 — Restart Mechanics | complete | 04-01-SUMMARY.md |
 | 5 — Death Spiral Guard | complete | 05-01-SUMMARY.md |
 | 6 — Testing & Polish | complete | 06-01-SUMMARY.md, 06-02-SUMMARY.md, 06-03-SUMMARY.md |
+| 7 — Timer Messages | not started | |
+| 8 — Death Watch & Linking | not started | |
+| 9 — Back-pressure | not started | |
+| 10 — PubSub / Process Groups | not started | |
+| 11 — GenStateMachine / FSM | not started | |
 
 ## Last Action
 
-Phase 6 complete — 2026-04-13
+Milestone 2 created — 2026-04-17
 
 ## Accumulated Decisions
 
@@ -48,4 +53,4 @@ Phase 6 complete — 2026-04-13
 
 ## Active Plan
 
-None — roadmap complete.
+None — Phase 7 not yet planned.

@@ -102,3 +102,86 @@ Phases are sequentially dependent:
 - Persistent supervisor tree in Gumbo
 - Dynamic child add/remove at runtime
 - Death watch (non-supervisor lifecycle monitoring)
+
+---
+
+# Milestone 2: Erlang/Elixir Feature Parity
+
+Add core Erlang/Elixir ecosystem primitives to Bayou. Five phases delivering timer messages, death watch/linking, back-pressure, PubSub, and a GenStateMachine behavior — each with tests woven in.
+
+## Phases
+
+### Phase 7: Timer Messages
+**Goal:** Schedule messages to self after a delay or on a recurring interval — the `Process.send_after` equivalent.
+
+- `BayouContext.scheduleOnce(Duration delay, M message)` returns a `TimerRef`
+- `BayouContext.schedulePeriodic(Duration interval, M message)` returns a `TimerRef`
+- `TimerRef.cancel()` — cancel a pending or recurring timer
+- Timers deliver as normal mailbox messages — no special actor changes needed
+- Tests: timer fires after delay, cancel prevents delivery, periodic fires N times, timer stops when actor stops
+
+**Done when:** An actor schedules a message to itself after 100ms, receives it, and a cancelled timer never delivers.
+
+---
+
+### Phase 8: Death Watch & Linking
+**Goal:** Any actor can monitor another for death; linked actors propagate crashes bidirectionally.
+
+- `system.watch(target, watcher)` — watcher receives `Terminated(actorId)` when target dies (crash or stop)
+- `system.unwatch(target, watcher)` — cancel a death watch
+- `system.link(a, b)` — bidirectional: if either dies, the other receives an exit signal and crashes (unless trapping exits)
+- `system.unlink(a, b)` — cancel a link
+- `BayouContext.trapExits(true)` — convert incoming exit signals to `ExitSignal` messages instead of crashing
+- Builds on the crash signal infrastructure from Milestone 1
+
+**Done when:** A watching actor receives `Terminated` when the watched actor crashes; linked actors propagate deaths bidirectionally; an actor with `trapExits(true)` survives a linked partner's death.
+
+---
+
+### Phase 9: Back-pressure
+**Goal:** Bounded mailboxes with configurable overflow strategies protect against runaway producers.
+
+- `MailboxConfig` value type: `MailboxConfig.bounded(int capacity)` and `MailboxConfig.unbounded()` (default)
+- `BayouSystem.spawn*(id, actor, MailboxConfig)` — optional mailbox configuration overload
+- Overflow strategies: `DROP_OLDEST`, `DROP_NEWEST`, `REJECT` (tell() throws `MailboxFullException`)
+- Overflow metrics hook: pluggable `OverflowListener` for observability
+- Tests: bounded mailbox fills, each strategy behaves correctly, unbounded actors unaffected
+
+**Done when:** An actor with `MailboxConfig.bounded(10)` receiving 20 rapid messages applies the configured overflow strategy correctly; existing unbounded actors are unaffected.
+
+---
+
+### Phase 10: PubSub / Process Groups
+**Goal:** Named topic-based publish/subscribe — actors join groups; any publisher broadcasts to all members.
+
+- `system.pubsub()` returns a `BayouPubSub` registry (one per `BayouSystem`)
+- `pubsub.subscribe(String topic, ActorRef<M> subscriber)` — actor joins topic
+- `pubsub.unsubscribe(String topic, ActorRef<?> subscriber)` — actor leaves topic
+- `pubsub.publish(String topic, M message)` — delivers to all live subscribers on that topic
+- Dead actor references silently skipped; thread-safe for concurrent subscribe/publish
+- Tests: multi-subscriber broadcast, unsubscribe stops delivery, dead-actor cleanup, topic isolation
+
+**Done when:** Three actors subscribed to a topic all receive a published message; an unsubscribed actor does not; a stopped actor's slot is silently skipped.
+
+---
+
+### Phase 11: GenStateMachine / FSM
+**Goal:** Finite state machine behavior — actors declare states and transitions; the framework manages state and fires callbacks.
+
+- `StateMachineActor<S extends Enum<S>, M>` interface — generic over a state enum and message type
+- `transition(S currentState, M message, BayouContext ctx)` returns `Optional<S>` — empty = stay in current state
+- `onEnter(S state, BayouContext ctx)` and `onExit(S state, BayouContext ctx)` lifecycle callbacks
+- `BayouContext.currentState()` — readable from handlers and callbacks
+- `BayouSystem.spawnStateMachine(id, actor, S initialState)` factory
+- Tests: valid transition, invalid/ignored transition, enter/exit callbacks, full lifecycle, stop in any state
+
+**Done when:** A traffic-light FSM correctly cycles RED→GREEN→YELLOW→RED with `onEnter`/`onExit` callbacks firing in declaration order.
+
+---
+
+## Out of Scope (Milestone 2)
+
+- Remote/distributed actors
+- Hot code reloading
+- TestKit / test probes (deterministic actor testing — deferred to Milestone 3)
+- Persistent PubSub (topic subscriptions surviving restart)
