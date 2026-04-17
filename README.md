@@ -53,6 +53,15 @@ greeter.tell("World");  // fire-and-forget
 greeter.tell("Bayou");
 ```
 
+## Supervision
+
+```java
+SupervisorRef supervisor = system.spawnSupervisor("root", new AppRoot(),
+        new OneForOneStrategy(new RestartWindow(5, Duration.ofSeconds(60))));
+```
+
+Declare children inside your `SupervisorActor`; the framework restarts crashed children and escalates when the restart window is exceeded. Use `AllForOneStrategy` to restart all siblings together. See the [supervision guide](docs/supervision.md) for decision trees and nested supervisor examples.
+
 ## Actor Flavours
 
 | Flavour | Use case | gumbo usage |
@@ -66,9 +75,10 @@ greeter.tell("Bayou");
 
 | Primitive | Description |
 |---|---|
-| **Timers** | `ctx.scheduleOnce` / `ctx.schedulePeriodic` — send a message to self after a delay or on a fixed interval |
-| **Death Watch & Linking** | `ctx.watch(ref)` to observe termination; `ctx.link(ref)` for bidirectional fate sharing |
-| **Back-pressure** | `MailboxConfig.bounded(n, OverflowStrategy)` — drop newest, drop oldest, or reject on full |
+| **Timers** | `ctx.scheduleOnce(delay, msg)` / `ctx.schedulePeriodic(interval, msg)` → `TimerRef.cancel()` |
+| **Death Watch** | `ctx.watch(ref)` — receive `Terminated(id)` when the target stops or crashes |
+| **Actor Linking** | `ctx.link(ref)` — bidirectional exit propagation; `ctx.trapExits(true)` converts exit signals to `LinkedActorDied` messages instead of crashing |
+| **Back-pressure** | `MailboxConfig.bounded(n, OverflowStrategy)` — `DROP_NEWEST`, `DROP_OLDEST`, or `REJECT` (throws `MailboxFullException`) |
 | **PubSub** | `system.pubsub()` for in-memory fan-out; `system.topic(name, serializer)` for durable log-backed topics |
 
 ## Documentation
@@ -77,6 +87,10 @@ greeter.tell("Bayou");
 |---|---|
 | [Getting Started](docs/getting-started.md) | End-to-end: supervised event-sourced actor + persistent topic + TestKit |
 | [Actor Flavours](docs/actor-flavours.md) | When to use Actor, StatefulActor, EventSourcedActor, StateMachineActor |
+| [Timers](docs/timers.md) | scheduleOnce, schedulePeriodic, cancellation, sliding timeouts |
+| [Death Watch](docs/death-watch.md) | Observing actor termination with ctx.watch and Terminated signals |
+| [Actor Linking](docs/actor-linking.md) | Bidirectional exit propagation, trapExits, LinkedActorDied |
+| [Back-pressure](docs/back-pressure.md) | Bounded mailboxes, overflow strategies, OverflowListener |
 | [Testing](docs/testing.md) | TestKit, TestProbe assertions, Awaitility patterns |
 | [Persistent PubSub](docs/persistent-pubsub.md) | BayouTopic vs BayouPubSub, durable subscriptions, replay |
 | [Supervision](docs/supervision.md) | Supervision trees, strategies, restart windows, escalation |

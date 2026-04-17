@@ -81,9 +81,41 @@ public final class TestProbe<M> {
     /**
      * Watch {@code watched} for termination, then block until a {@link Terminated} signal
      * for that actor arrives, or throw {@link AssertionError} on timeout.
+     *
+     * <p>If the actor is already stopped (or unregistered) at call time, the method returns
+     * immediately — the actor has clearly terminated. If a {@link Terminated} signal was
+     * already queued (from a previously registered watch), it is consumed.
      */
     public void expectTerminated(Ref<?> watched, Duration timeout) {
-        system.watch(watched, this.ref);
+        // Check if a Terminated signal is already queued from a prior watch.
+        Signal peeked = signals.peek();
+        if (peeked instanceof Terminated t && t.actorId().equals(watched.actorId())) {
+            signals.poll();
+            return;
+        }
+
+        boolean alreadyDead = false;
+        try {
+            system.watch(watched, this.ref);
+            // If the actor is already stopped (not alive) after watch registration,
+            // the Terminated signal may have already fired before our listener was added.
+            if (!watched.isAlive()) {
+                alreadyDead = true;
+            }
+        } catch (IllegalArgumentException e) {
+            // Actor already fully stopped and unregistered — treat as terminated.
+            alreadyDead = true;
+        }
+
+        if (alreadyDead) {
+            // Check once more if a signal arrived in the brief window between watch and isAlive check.
+            Signal queued = signals.peek();
+            if (queued instanceof Terminated t && t.actorId().equals(watched.actorId())) {
+                signals.poll();
+            }
+            return;
+        }
+
         long deadline = System.currentTimeMillis() + timeout.toMillis();
         while (System.currentTimeMillis() < deadline) {
             long remaining = deadline - System.currentTimeMillis();
