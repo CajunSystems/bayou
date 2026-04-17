@@ -1,6 +1,7 @@
 package com.cajunsystems.bayou.actor;
 
 import com.cajunsystems.bayou.BayouContext;
+import com.cajunsystems.bayou.Signal;
 
 import java.util.List;
 
@@ -75,4 +76,10 @@ public interface EventSourcedActor<S, E, M> {
     default void onError(M message, Throwable error, BayouContext<M> context) {
         context.logger().error("Unhandled error processing message {}", message, error);
     }
+
+    /**
+     * Called when a lifecycle signal is delivered.
+     * Return events to emit (return empty list if not handled).
+     */
+    default List<E> onSignal(S state, Signal signal, BayouContext<M> ctx) { return List.of(); }
 }

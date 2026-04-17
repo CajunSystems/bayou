@@ -38,4 +38,15 @@ public interface BayouContext<M> {
      * Returns a {@link TimerRef} that must be cancelled to stop the repetition.
      */
     TimerRef schedulePeriodic(Duration period, M message);
+
+    /**
+     * Watch {@code target} for death. When it stops (crash or graceful), this actor receives
+     * a {@link Terminated} signal via {@link com.cajunsystems.bayou.actor.Actor#onSignal}.
+     *
+     * @return a handle to cancel the watch
+     */
+    WatchHandle watch(Ref<?> target);
+
+    /** Cancel a previously registered death watch. Idempotent. */
+    void unwatch(WatchHandle handle);
 }

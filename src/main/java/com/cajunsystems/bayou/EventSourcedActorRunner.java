@@ -70,4 +70,20 @@ final class EventSourcedActorRunner<S, E, M> extends AbstractActorRunner<M> {
     protected void cleanup() {
         actor.postStop(context);
     }
+
+    @Override
+    protected void handleSignal(Signal signal) {
+        try {
+            List<E> events = actor.onSignal(state, signal, context);
+            for (E event : events) {
+                byte[] bytes = eventSerializer.serialize(event);
+                eventView.append(bytes).join();
+                state = actor.apply(state, event);
+            }
+        } catch (Exception e) {
+            try {
+                actor.onError(null, e, context);
+            } catch (Exception ignored) {}
+        }
+    }
 }

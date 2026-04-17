@@ -81,6 +81,19 @@ final class StatefulActorRunner<S, M> extends AbstractActorRunner<M> {
         actor.postStop(context);
     }
 
+    @Override
+    protected void handleSignal(Signal signal) {
+        S previousState = state;
+        try {
+            state = actor.onSignal(state, signal, context);
+        } catch (Exception e) {
+            state = previousState;
+            try {
+                actor.onError(null, e, context);
+            } catch (Exception ignored) {}
+        }
+    }
+
     private void takeSnapshot() {
         try {
             byte[] bytes = stateSerializer.serialize(state);

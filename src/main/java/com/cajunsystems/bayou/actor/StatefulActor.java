@@ -1,6 +1,7 @@
 package com.cajunsystems.bayou.actor;
 
 import com.cajunsystems.bayou.BayouContext;
+import com.cajunsystems.bayou.Signal;
 
 /**
  * A function-core style actor: {@code (S state, M message) -> S}.
@@ -59,4 +60,10 @@ public interface StatefulActor<S, M> {
     default void onError(M message, Throwable error, BayouContext<M> context) {
         context.logger().error("Unhandled error processing message {}", message, error);
     }
+
+    /**
+     * Called when a lifecycle signal is delivered.
+     * Return the new state (return {@code state} unchanged if not handled).
+     */
+    default S onSignal(S state, Signal signal, BayouContext<M> ctx) { return state; }
 }

@@ -36,4 +36,15 @@ final class StatelessActorRunner<M> extends AbstractActorRunner<M> {
     protected void cleanup() {
         actor.postStop(context);
     }
+
+    @Override
+    protected void handleSignal(Signal signal) {
+        try {
+            actor.onSignal(signal, context);
+        } catch (Exception e) {
+            try {
+                actor.onError(null, e, context);
+            } catch (Exception ignored) {}
+        }
+    }
 }

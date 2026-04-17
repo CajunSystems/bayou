@@ -1,6 +1,7 @@
 package com.cajunsystems.bayou.actor;
 
 import com.cajunsystems.bayou.BayouContext;
+import com.cajunsystems.bayou.Signal;
 
 /**
  * A pure message-processing actor with no persisted state.
@@ -40,4 +41,10 @@ public interface Actor<M> {
     default void onError(M message, Throwable error, BayouContext<M> context) {
         context.logger().error("Unhandled error processing message {}", message, error);
     }
+
+    /**
+     * Called when a lifecycle signal (e.g. {@link com.cajunsystems.bayou.Terminated},
+     * {@link com.cajunsystems.bayou.LinkedActorDied}) is delivered to this actor.
+     */
+    default void onSignal(Signal signal, BayouContext<M> ctx) {}
 }

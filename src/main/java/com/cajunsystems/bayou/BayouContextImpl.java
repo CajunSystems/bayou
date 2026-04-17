@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * Package-private implementation of {@link BayouContext}.
@@ -92,5 +93,19 @@ class BayouContextImpl<M> implements BayouContext<M> {
         TimerRefImpl ref = new TimerRefImpl(future);
         runner.activeTimers.add(ref);
         return ref;
+    }
+
+    @Override
+    public WatchHandle watch(Ref<?> target) {
+        AbstractActorRunner<?> targetRunner = system.lookupRunner(target.actorId());
+        if (targetRunner == null) throw new IllegalArgumentException("Unknown target actor: " + target.actorId());
+        Consumer<Signal> listener = runner::signal;
+        targetRunner.signalListeners.add(listener);
+        return new WatchHandleImpl(targetRunner, listener);
+    }
+
+    @Override
+    public void unwatch(WatchHandle handle) {
+        handle.cancel();
     }
 }

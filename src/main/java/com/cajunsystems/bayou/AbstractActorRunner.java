@@ -1,8 +1,10 @@
 package com.cajunsystems.bayou;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -38,6 +40,9 @@ abstract class AbstractActorRunner<M> {
     /** Active timers scheduled on behalf of this actor. Cancelled on actor stop. */
     final Set<TimerRefImpl> activeTimers = ConcurrentHashMap.newKeySet();
 
+    /** Listeners notified with a {@link Terminated} signal when this actor stops. */
+    final List<Consumer<Signal>> signalListeners = new CopyOnWriteArrayList<>();
+
     AbstractActorRunner(String actorId, BayouSystem system) {
         this.actorId = actorId;
         this.system = system;
@@ -61,15 +66,19 @@ abstract class AbstractActorRunner<M> {
             while (running.get() || !mailbox.isEmpty()) {
                 Envelope<M> env = mailbox.poll(100, TimeUnit.MILLISECONDS);
                 if (env != null) {
-                    context.setCurrentEnvelope(env);
-                    processEnvelope(env);
-                    context.setCurrentEnvelope(null); // prevent stale reply() calls
-                    // If it was an ask and the handler did not reply, fail the future
-                    if (env.isAsk() && !env.replyFuture().isDone()) {
-                        env.replyFuture().completeExceptionally(
-                                new IllegalStateException(
-                                        "Actor '" + actorId + "' did not call reply() for ask message: "
-                                                + env.payload()));
+                    if (env.isSignal()) {
+                        processSignalEnvelope(env.signal());
+                    } else {
+                        context.setCurrentEnvelope(env);
+                        processEnvelope(env);
+                        context.setCurrentEnvelope(null); // prevent stale reply() calls
+                        // If it was an ask and the handler did not reply, fail the future
+                        if (env.isAsk() && !env.replyFuture().isDone()) {
+                            env.replyFuture().completeExceptionally(
+                                    new IllegalStateException(
+                                            "Actor '" + actorId + "' did not call reply() for ask message: "
+                                                    + env.payload()));
+                        }
                     }
                 }
             }
@@ -89,6 +98,14 @@ abstract class AbstractActorRunner<M> {
                 context.logger().error("Error during cleanup for actor '{}'", actorId, e);
             }
             stopFuture.complete(null);
+            // Fire Terminated to all watchers (both crash and graceful stop)
+            if (!signalListeners.isEmpty()) {
+                Terminated terminated = new Terminated(actorId);
+                for (var listener : signalListeners) {
+                    try { listener.accept(terminated); } catch (Exception ignored) {}
+                }
+                signalListeners.clear();
+            }
             if (terminalCause != null) {
                 var listener = crashListener;
                 if (listener != null) {
@@ -102,6 +119,19 @@ abstract class AbstractActorRunner<M> {
 
     final void tell(M message) {
         mailbox.offer(Envelope.tell(message));
+    }
+
+    final void signal(Signal signal) {
+        mailbox.offer(Envelope.signal(signal));
+    }
+
+    private void processSignalEnvelope(Signal signal) {
+        // Plan 2 will add: if (signal instanceof LinkedActorDied lad && !trapExits) throw ...
+        handleSignal(signal);
+    }
+
+    protected void handleSignal(Signal signal) {
+        // Default no-op; overridden by actor runners
     }
 
     @SuppressWarnings("unchecked")

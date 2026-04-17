@@ -11,6 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Consumer;
 
 /**
  * Entry point for the Bayou actor system.
@@ -39,6 +40,7 @@ public class BayouSystem implements AutoCloseable {
 
     private final SharedLog sharedLog;
     private final ConcurrentHashMap<String, Ref<?>> actors = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AbstractActorRunner<?>> runners = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduledExecutor =
         Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = Thread.ofPlatform().daemon(true).name("bayou-timer").unstarted(r);
@@ -65,9 +67,18 @@ public class BayouSystem implements AutoCloseable {
         actors.put(actorId, ref);
     }
 
+    void registerRunner(String actorId, AbstractActorRunner<?> runner) {
+        runners.put(actorId, runner);
+    }
+
+    AbstractActorRunner<?> lookupRunner(String actorId) {
+        return runners.get(actorId);
+    }
+
     /** Called by {@link SupervisorRunner#cleanup()} to deregister children on stop/escalation. */
     void unregisterActor(String actorId) {
         actors.remove(actorId);
+        runners.remove(actorId);
     }
 
     // ── Spawn: stateless ─────────────────────────────────────────────────────
@@ -86,6 +97,7 @@ public class BayouSystem implements AutoCloseable {
         runner.start();
         Ref<M> ref = runner.toRef();
         actors.put(actorId, ref);
+        runners.put(actorId, runner);
         return ref;
     }
 
@@ -113,6 +125,7 @@ public class BayouSystem implements AutoCloseable {
         runner.start();
         Ref<M> ref = runner.toRef();
         actors.put(actorId, ref);
+        runners.put(actorId, runner);
         return ref;
     }
 
@@ -159,6 +172,7 @@ public class BayouSystem implements AutoCloseable {
         runner.start();
         Ref<M> ref = runner.toRef();
         actors.put(actorId, ref);
+        runners.put(actorId, runner);
         return ref;
     }
 
@@ -195,7 +209,29 @@ public class BayouSystem implements AutoCloseable {
         runner.start();
         SupervisorRef ref = runner.toSupervisorRef();
         actors.put(actorId, ref);
+        runners.put(actorId, runner);
         return ref;
+    }
+
+    // ── Death watch ──────────────────────────────────────────────────────────
+
+    /**
+     * Register a death watch on {@code target}. When the target actor stops (crash or graceful),
+     * {@code watcher} receives a {@link Terminated} signal via its {@code onSignal} handler.
+     */
+    public WatchHandle watch(Ref<?> target, Ref<?> watcher) {
+        AbstractActorRunner<?> targetRunner = runners.get(target.actorId());
+        AbstractActorRunner<?> watcherRunner = runners.get(watcher.actorId());
+        if (targetRunner == null) throw new IllegalArgumentException("Unknown target actor: " + target.actorId());
+        if (watcherRunner == null) throw new IllegalArgumentException("Unknown watcher actor: " + watcher.actorId());
+        Consumer<Signal> listener = watcherRunner::signal;
+        targetRunner.signalListeners.add(listener);
+        return new WatchHandleImpl(targetRunner, listener);
+    }
+
+    /** Cancel a previously registered death watch. Idempotent. */
+    public void unwatch(WatchHandle handle) {
+        handle.cancel();
     }
 
     // ── Shutdown ─────────────────────────────────────────────────────────────
@@ -213,6 +249,7 @@ public class BayouSystem implements AutoCloseable {
             CompletableFuture.allOf(stops).join();
         } finally {
             actors.clear();
+            runners.clear();
             sharedLog.close();
         }
     }
