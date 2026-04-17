@@ -18,9 +18,12 @@ public sealed interface ChildSpec permits StatelessChildSpec, StatefulChildSpec,
     /** The unique actor ID for this child within the system. */
     String actorId();
 
+    /** The mailbox configuration for this child actor. */
+    MailboxConfig mailboxConfig();
+
     /** Creates a spec for a stateless actor. */
     static <M> ChildSpec stateless(String actorId, Actor<M> actor) {
-        return new StatelessChildSpec<>(actorId, actor);
+        return new StatelessChildSpec<>(actorId, actor, MailboxConfig.unbounded());
     }
 
     /**
@@ -37,14 +40,14 @@ public sealed interface ChildSpec permits StatelessChildSpec, StatefulChildSpec,
                                                      StatefulActor<S, M> actor,
                                                      BayouSerializer<S> stateSerializer) {
         return new StatefulChildSpec<>(actorId, actor, stateSerializer,
-                BayouSystem.DEFAULT_SNAPSHOT_INTERVAL);
+                BayouSystem.DEFAULT_SNAPSHOT_INTERVAL, MailboxConfig.unbounded());
     }
 
     /** Creates a spec for an event-sourced actor. */
     static <S, E, M> ChildSpec eventSourced(String actorId,
                                               EventSourcedActor<S, E, M> actor,
                                               BayouSerializer<E> eventSerializer) {
-        return new EventSourcedChildSpec<>(actorId, actor, eventSerializer);
+        return new EventSourcedChildSpec<>(actorId, actor, eventSerializer, MailboxConfig.unbounded());
     }
 
     /**
@@ -61,6 +64,6 @@ public sealed interface ChildSpec permits StatelessChildSpec, StatefulChildSpec,
      * }</pre>
      */
     static ChildSpec supervisor(String actorId, SupervisorActor supervisorActor) {
-        return new SupervisorChildSpec(actorId, supervisorActor);
+        return new SupervisorChildSpec(actorId, supervisorActor, MailboxConfig.unbounded());
     }
 }

@@ -9,7 +9,8 @@ import com.cajunsystems.bayou.actor.StatefulActor;
 public record StatefulChildSpec<S, M>(String actorId,
                                        StatefulActor<S, M> actor,
                                        BayouSerializer<S> stateSerializer,
-                                       int snapshotInterval) implements ChildSpec {
+                                       int snapshotInterval,
+                                       MailboxConfig mailboxConfig) implements ChildSpec {
 
     /**
      * Returns a new spec with the given snapshot interval.
@@ -18,6 +19,10 @@ public record StatefulChildSpec<S, M>(String actorId,
      */
     public StatefulChildSpec<S, M> snapshotInterval(int n) {
         if (n <= 0) throw new IllegalArgumentException("snapshotInterval must be > 0");
-        return new StatefulChildSpec<>(actorId, actor, stateSerializer, n);
+        return new StatefulChildSpec<>(actorId, actor, stateSerializer, n, mailboxConfig);
+    }
+
+    public StatefulChildSpec<S, M> withMailbox(MailboxConfig config) {
+        return new StatefulChildSpec<>(actorId, actor, stateSerializer, snapshotInterval, config);
     }
 }

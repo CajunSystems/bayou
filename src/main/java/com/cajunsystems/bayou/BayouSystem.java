@@ -92,8 +92,21 @@ public class BayouSystem implements AutoCloseable {
      * @return a reference for sending messages
      */
     public <M> Ref<M> spawn(String actorId, Actor<M> actor) {
+        return spawn(actorId, actor, MailboxConfig.unbounded());
+    }
+
+    /**
+     * Spawn a stateless actor with a custom mailbox configuration.
+     *
+     * @param actorId       unique identity within this system
+     * @param actor         {@link Actor} implementation (may be a lambda)
+     * @param mailboxConfig mailbox capacity and overflow strategy
+     * @param <M>           message type
+     * @return a reference for sending messages
+     */
+    public <M> Ref<M> spawn(String actorId, Actor<M> actor, MailboxConfig mailboxConfig) {
         checkNotDuplicate(actorId);
-        var runner = new StatelessActorRunner<>(actorId, this, actor);
+        var runner = new StatelessActorRunner<>(actorId, this, actor, mailboxConfig);
         runner.start();
         Ref<M> ref = runner.toRef();
         actors.put(actorId, ref);
@@ -120,8 +133,27 @@ public class BayouSystem implements AutoCloseable {
     public <S, E, M> Ref<M> spawnEventSourced(String actorId,
                                                 EventSourcedActor<S, E, M> actor,
                                                 BayouSerializer<E> eventSerializer) {
+        return spawnEventSourced(actorId, actor, eventSerializer, MailboxConfig.unbounded());
+    }
+
+    /**
+     * Spawn an event-sourced actor with a custom mailbox configuration.
+     *
+     * @param actorId         unique identity within this system
+     * @param actor           event-sourced actor implementation
+     * @param eventSerializer serializer for the event type {@code E}
+     * @param mailboxConfig   mailbox capacity and overflow strategy
+     * @param <S>             state type
+     * @param <E>             event type
+     * @param <M>             message type
+     * @return a reference for sending messages
+     */
+    public <S, E, M> Ref<M> spawnEventSourced(String actorId,
+                                                EventSourcedActor<S, E, M> actor,
+                                                BayouSerializer<E> eventSerializer,
+                                                MailboxConfig mailboxConfig) {
         checkNotDuplicate(actorId);
-        var runner = new EventSourcedActorRunner<>(actorId, this, actor, eventSerializer);
+        var runner = new EventSourcedActorRunner<>(actorId, this, actor, eventSerializer, mailboxConfig);
         runner.start();
         Ref<M> ref = runner.toRef();
         actors.put(actorId, ref);
@@ -166,9 +198,29 @@ public class BayouSystem implements AutoCloseable {
                                         StatefulActor<S, M> actor,
                                         BayouSerializer<S> stateSerializer,
                                         int snapshotInterval) {
+        return spawnStateful(actorId, actor, stateSerializer, snapshotInterval, MailboxConfig.unbounded());
+    }
+
+    /**
+     * Spawn a stateful actor with a custom snapshot interval and mailbox configuration.
+     *
+     * @param actorId          unique identity within this system
+     * @param actor            stateful actor implementation
+     * @param stateSerializer  serializer for the state type {@code S}
+     * @param snapshotInterval how many messages between automatic snapshots (must be &gt; 0)
+     * @param mailboxConfig    mailbox capacity and overflow strategy
+     * @param <S>              state type
+     * @param <M>              message type
+     * @return a reference for sending messages
+     */
+    public <S, M> Ref<M> spawnStateful(String actorId,
+                                        StatefulActor<S, M> actor,
+                                        BayouSerializer<S> stateSerializer,
+                                        int snapshotInterval,
+                                        MailboxConfig mailboxConfig) {
         if (snapshotInterval <= 0) throw new IllegalArgumentException("snapshotInterval must be > 0");
         checkNotDuplicate(actorId);
-        var runner = new StatefulActorRunner<>(actorId, this, actor, stateSerializer, snapshotInterval);
+        var runner = new StatefulActorRunner<>(actorId, this, actor, stateSerializer, snapshotInterval, mailboxConfig);
         runner.start();
         Ref<M> ref = runner.toRef();
         actors.put(actorId, ref);
@@ -205,7 +257,7 @@ public class BayouSystem implements AutoCloseable {
         for (ChildSpec child : children) {
             checkNotDuplicate(child.actorId());
         }
-        var runner = new SupervisorRunner(actorId, this, supervisorActor.strategy(), children);
+        var runner = new SupervisorRunner(actorId, this, supervisorActor.strategy(), children, MailboxConfig.unbounded());
         runner.start();
         SupervisorRef ref = runner.toSupervisorRef();
         actors.put(actorId, ref);
