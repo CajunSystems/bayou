@@ -138,7 +138,7 @@ Add core Erlang/Elixir ecosystem primitives to Bayou. Five phases delivering tim
 
 ---
 
-### Phase 9: Back-pressure
+### ~~Phase 9: Back-pressure~~ ✓ Complete (1 plan)
 **Goal:** Bounded mailboxes with configurable overflow strategies protect against runaway producers.
 
 - `MailboxConfig` value type: `MailboxConfig.bounded(int capacity)` and `MailboxConfig.unbounded()` (default)

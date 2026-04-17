@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 9: Back-pressure** — not started
+**Phase 9: Back-pressure** — complete
 
 ## Phase Status
 
@@ -16,13 +16,13 @@
 | 6 — Testing & Polish | complete | 06-01-SUMMARY.md, 06-02-SUMMARY.md, 06-03-SUMMARY.md |
 | 7 — Timer Messages | complete | 07-01-SUMMARY.md |
 | 8 — Death Watch & Linking | complete | 08-01-SUMMARY.md, 08-02-SUMMARY.md |
-| 9 — Back-pressure | not started | |
+| 9 — Back-pressure | complete | 09-01-SUMMARY.md |
 | 10 — PubSub / Process Groups | not started | |
 | 11 — GenStateMachine / FSM | not started | |
 
 ## Last Action
 
-Phase 8 complete — 2026-04-17
+Phase 9 complete — 2026-04-17
 
 ## Accumulated Decisions
 
@@ -65,6 +65,12 @@ Phase 8 complete — 2026-04-17
 - `startAndRegister()` checks `instanceof SupervisorRunner` to register `SupervisorRef` vs `ActorRef` — ensures `system.lookup("child-sup")` returns a castable `SupervisorRef`
 - Nested supervisor crash propagation uses existing `crashListener` machinery — no new wiring needed; escalation from child supervisor fires `ChildCrash` to parent supervisor's mailbox
 
+- `MailboxConfig` record stores `(int capacity, OverflowStrategy, OverflowListener)` — `Integer.MAX_VALUE` = unbounded; factory methods `unbounded()`, `bounded(int)`, `bounded(int, OverflowStrategy)`, `bounded(int, OverflowStrategy, OverflowListener)`
+- `OverflowStrategy` enum: `DROP_NEWEST`, `DROP_OLDEST`, `REJECT` — enforcement in `tell()` only; `signal()` and ask-envelope bypass it
+- `MailboxFullException` package-private constructor — thrown from `tell()` on REJECT overflow; fields `actorId` + `capacity`
+- `ChildSpec` sealed interface gains `mailboxConfig()` — all 4 record impls add `withMailbox(MailboxConfig)` builder; factory defaults to `unbounded()`
+- `BayouSystem.spawn*(id, actor, MailboxConfig)` overloads — existing no-MailboxConfig signatures delegate to `unbounded()` variant
+
 ## Active Plan
 
-None — Phase 9 not yet planned.
+None — Phase 10 not yet planned.
