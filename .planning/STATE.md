@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 8: Death Watch & Linking** — not started
+**Phase 9: Back-pressure** — not started
 
 ## Phase Status
 
@@ -15,17 +15,19 @@
 | 5 — Death Spiral Guard | complete | 05-01-SUMMARY.md |
 | 6 — Testing & Polish | complete | 06-01-SUMMARY.md, 06-02-SUMMARY.md, 06-03-SUMMARY.md |
 | 7 — Timer Messages | complete | 07-01-SUMMARY.md |
-| 8 — Death Watch & Linking | not started | |
+| 8 — Death Watch & Linking | complete | 08-01-SUMMARY.md, 08-02-SUMMARY.md |
 | 9 — Back-pressure | not started | |
 | 10 — PubSub / Process Groups | not started | |
 | 11 — GenStateMachine / FSM | not started | |
 
 ## Last Action
 
-Phase 7 complete — 2026-04-17
+Phase 8 complete — 2026-04-17
 
 ## Accumulated Decisions
 
+- `linkedRunners` (ConcurrentHashMap key set) per-actor; `volatile boolean trapExits`; `processSignalEnvelope` throws on non-trapped `LinkedActorDied`; graceful stop propagates via link (terminalCause=null wraps cleanly)
+- `system.link(a,b)` / `system.unlink(a,b)` + `ctx.link()` / `ctx.unlink()` / `ctx.trapExits()`
 - `Signal` sealed interface (`Terminated`, `LinkedActorDied`) — signals share actor mailbox via `Envelope.signal()` factory; FIFO preserved
 - `signalListeners` (CopyOnWriteArrayList) in AbstractActorRunner; `Terminated` fires in `finally` for both crash and graceful stop
 - `BayouSystem.runners` map added alongside `actors` — package-private runner lookup without casting; all `spawn*()` populate it
@@ -65,4 +67,4 @@ Phase 7 complete — 2026-04-17
 
 ## Active Plan
 
-Phase 8, Plan 2: Linking & trapExits — `08-02-PLAN.md`
+None — Phase 9 not yet planned.
