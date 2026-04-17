@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 13: Durable Subscriptions** — planned
+**Phase 13: Durable Subscriptions** — complete
 
 ## Phase Status
 
@@ -21,14 +21,14 @@
 | 11 — GenStateMachine / FSM | complete | 11-01-SUMMARY.md |
 | **Milestone 3** | | |
 | 12 — Persistent Topic Core | complete | 12-01-PLAN.md, 12-01-SUMMARY.md |
-| 13 — Durable Subscriptions | planned | 13-01-PLAN.md |
+| 13 — Durable Subscriptions | complete | 13-01-SUMMARY.md |
 | 14 — Message Replay | not started | |
 | 15 — TestKit | not started | |
 | 16 — Developer Experience & Docs | not started | |
 
 ## Last Action
 
-Phase 12, Plan 1 complete — 2026-04-17
+Phase 13, Plan 1 complete — 2026-04-17
 
 ## Accumulated Decisions
 
@@ -89,6 +89,10 @@ Phase 12, Plan 1 complete — 2026-04-17
 - `LogView` at `LogTag.of("bayou.topic", name)` — initialized in `preStart`; `publish()` appends bytes then delivers to liveSubscribers (CopyOnWriteArrayList, lazy removeIf cleanup)
 - `BayouSystem.topics` ConcurrentHashMap — `topic()` idempotent via `computeIfAbsent`; actor registered as `"bayou-topic-" + name`
 
+- `TopicCommand` gains `SubscribeDurable<M>` and `UnsubscribeDurable<M>` sealed records
+- `TopicActor.durableSubscribers` HashMap — position stored as KV `"sub:" + subscriptionId` on the topic's LogView; `readAfter(storedSeqnum)` replays on reconnect; `getLatestSeqnum()` records join point for new subscriptions; dead durable refs removed from map without advancing position
+- `BayouTopic.subscribe(String, Ref<M>)` and `unsubscribeDurable(String)` — public durable subscription API
+
 ## Active Plan
 
-Phase 13, Plan 1 — `.planning/phases/13-durable-subscriptions/13-01-PLAN.md`
+None — Phase 14 not yet planned.
