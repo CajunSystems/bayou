@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 16: Developer Experience & Docs** — in progress
+**Phase 16: Developer Experience & Docs** — complete
 
 ## Phase Status
 
@@ -24,11 +24,11 @@
 | 13 — Durable Subscriptions | complete | 13-01-SUMMARY.md |
 | 14 — Message Replay | complete | 14-01-SUMMARY.md |
 | 15 — TestKit | complete | 15-01-SUMMARY.md |
-| 16 — Developer Experience & Docs | in progress | 16-01-SUMMARY.md |
+| 16 — Developer Experience & Docs | complete | 16-01-SUMMARY.md, 16-02-SUMMARY.md |
 
 ## Last Action
 
-Phase 16, Plan 1 complete — 2026-04-17
+Phase 16, Plan 2 complete — 2026-04-17
 
 ## Accumulated Decisions
 
@@ -108,8 +108,4 @@ Phase 16, Plan 1 complete — 2026-04-17
 
 ## Active Plan
 
-Phase 16, Plan 2 — `.planning/phases/16-developer-experience-docs/16-02-PLAN.md`
-
-Phase 16 has 2 plans total:
-- 16-01: Exception messages + CHANGELOG + getting-started + actor-flavours + testing docs
-- 16-02: persistent-pubsub + supervision + patterns docs + README overhaul
+None — Phase 16 complete. Milestone 3 complete.
