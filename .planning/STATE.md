@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 10: PubSub / Process Groups** — in progress (1 plan ready)
+**Phase 10: PubSub / Process Groups** — complete
 
 ## Phase Status
 
@@ -17,12 +17,12 @@
 | 7 — Timer Messages | complete | 07-01-SUMMARY.md |
 | 8 — Death Watch & Linking | complete | 08-01-SUMMARY.md, 08-02-SUMMARY.md |
 | 9 — Back-pressure | complete | 09-01-SUMMARY.md |
-| 10 — PubSub / Process Groups | in progress | 10-01-PLAN.md ready |
+| 10 — PubSub / Process Groups | complete | 10-01-SUMMARY.md |
 | 11 — GenStateMachine / FSM | not started | |
 
 ## Last Action
 
-Phase 10 plan created — 2026-04-17
+Phase 10 complete — 2026-04-17
 
 ## Accumulated Decisions
 
@@ -71,6 +71,10 @@ Phase 10 plan created — 2026-04-17
 - `ChildSpec` sealed interface gains `mailboxConfig()` — all 4 record impls add `withMailbox(MailboxConfig)` builder; factory defaults to `unbounded()`
 - `BayouSystem.spawn*(id, actor, MailboxConfig)` overloads — existing no-MailboxConfig signatures delegate to `unbounded()` variant
 
+- `BayouPubSub` plain class owned by `BayouSystem` — `ConcurrentHashMap<String, CopyOnWriteArrayList<Ref<?>>>` subscriptions; `publish()` skips dead actors, swallows tell() exceptions, lazy `removeIf` cleanup
+- `ctx.self()` returns `Ref<M>` via `runner.toRef()` — enables type-safe in-actor PubSub subscription from `preStart`/`handle`
+- `BayouSystem.pubsub()` — single `BayouPubSub` instance per system, initialized eagerly as field
+
 ## Active Plan
 
-`.planning/phases/10-pubsub-process-groups/10-01-PLAN.md` — ready to execute.
+None — Phase 11 not yet planned.
