@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 10: PubSub / Process Groups** — complete
+**Phase 11: GenStateMachine / FSM** — in progress (1 plan ready)
 
 ## Phase Status
 
@@ -18,11 +18,11 @@
 | 8 — Death Watch & Linking | complete | 08-01-SUMMARY.md, 08-02-SUMMARY.md |
 | 9 — Back-pressure | complete | 09-01-SUMMARY.md |
 | 10 — PubSub / Process Groups | complete | 10-01-SUMMARY.md |
-| 11 — GenStateMachine / FSM | not started | |
+| 11 — GenStateMachine / FSM | in progress | 11-01-PLAN.md ready |
 
 ## Last Action
 
-Phase 10 complete — 2026-04-17
+Phase 11 plan created — 2026-04-17
 
 ## Accumulated Decisions
 
@@ -77,4 +77,4 @@ Phase 10 complete — 2026-04-17
 
 ## Active Plan
 
-None — Phase 11 not yet planned.
+`.planning/phases/11-gen-state-machine/11-01-PLAN.md` — ready to execute.
