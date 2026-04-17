@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] — 2026-04-17
+
+### Added
+- Six documentation guides: `getting-started`, `actor-flavours`, `testing`, `persistent-pubsub`, `supervision`, `patterns`
+
+### Changed
+- Exception messages now include bad values and actionable hints (`MailboxFullException`, `RestartWindow`, `BayouSystem` duplicate ID and snapshotInterval)
+- README overhauled from 534-line reference manual to ~90-line landing page; full reference moved to guides
+
+[0.2.0]: https://github.com/CajunSystems/bayou/releases/tag/0.2.0
+
+---
+
 ## [0.1.0] — 2026-04-17
 
 ### Added
