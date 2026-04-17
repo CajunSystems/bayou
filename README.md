@@ -1,10 +1,10 @@
 # Bayou
 
-An actor system built on top of [gumbo](https://github.com/CajunSystems/gumbo) — a shared append-only log. Bayou ships three actor flavours that cover the spectrum from pure in-memory processing to fully event-sourced state.
+An actor system built on top of [gumbo](https://github.com/CajunSystems/gumbo) — a shared append-only log. Bayou ships actor flavours that cover the spectrum from pure in-memory processing to fully event-sourced state, plus Erlang/Elixir-style primitives: supervision trees, timers, death watch, linking, back-pressure, PubSub, and finite state machines.
 
 ## Dependency
 
-Add gumbo via JitPack and then bayou itself:
+Add via [JitPack](https://jitpack.io):
 
 ```xml
 <repositories>
@@ -17,7 +17,7 @@ Add gumbo via JitPack and then bayou itself:
 <dependency>
     <groupId>com.github.CajunSystems</groupId>
     <artifactId>bayou</artifactId>
-    <version>main-SNAPSHOT</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
@@ -61,10 +61,10 @@ Implement the full interface when you need lifecycle hooks:
 
 ```java
 system.spawn("worker", new Actor<Job>() {
-    @Override public void handle(Job job, BayouContext ctx) { process(job); }
-    @Override public void preStart(BayouContext ctx)  { openConnection(); }
-    @Override public void postStop(BayouContext ctx)  { closeConnection(); }
-    @Override public void onError(Job job, Throwable e, BayouContext ctx) {
+    @Override public void handle(Job job, BayouContext<Job> ctx) { process(job); }
+    @Override public void preStart(BayouContext<Job> ctx)  { openConnection(); }
+    @Override public void postStop(BayouContext<Job> ctx)  { closeConnection(); }
+    @Override public void onError(Job job, Throwable e, BayouContext<Job> ctx) {
         ctx.logger().error("Failed job {}", job.id(), e);
     }
 });
@@ -102,12 +102,12 @@ class BankAccount implements EventSourcedActor<Balance, BankEvent, BankCmd> {
     @Override public Balance initialState() { return new Balance(0); }
 
     @Override
-    public List<BankEvent> handle(Balance state, BankCmd cmd, BayouContext ctx) {
+    public List<BankEvent> handle(Balance state, BankCmd cmd, BayouContext<BankCmd> ctx) {
         return switch (cmd) {
             case BankCmd.Deposit(long c)  -> List.of(new BankEvent.Deposited(c));
             case BankCmd.Withdraw(long c) -> state.cents() >= c
                     ? List.of(new BankEvent.Withdrawn(c))
-                    : List.of();                            // insufficient funds — no event
+                    : List.of();
             case BankCmd.GetBalance()     -> { ctx.reply(state.cents()); yield List.of(); }
         };
     }
@@ -136,8 +136,6 @@ long balance = account.<Long>ask(new BankCmd.GetBalance()).get(1, SECONDS);
 
 A `(state, message) → state` reducer. State is held in memory and periodically snapshotted to the log. On restart only the latest snapshot is loaded — no full replay required.
 
-Use this when state is large or changes too frequently for replay to be practical.
-
 ```java
 record Tally(Map<String, Integer> counts) implements Serializable {
     Tally add(String word) {
@@ -156,7 +154,7 @@ class WordCounter implements StatefulActor<Tally, TallyCmd> {
     @Override public Tally initialState() { return new Tally(new HashMap<>()); }
 
     @Override
-    public Tally reduce(Tally state, TallyCmd cmd, BayouContext ctx) {
+    public Tally reduce(Tally state, TallyCmd cmd, BayouContext<TallyCmd> ctx) {
         return switch (cmd) {
             case TallyCmd.Count(String w) -> state.add(w);
             case TallyCmd.Get(String w)   -> {
@@ -167,7 +165,6 @@ class WordCounter implements StatefulActor<Tally, TallyCmd> {
     }
 }
 
-// snapshot every 100 messages (default), or specify your own interval
 Ref<TallyCmd> counter = system.spawnStateful(
         "word-counter", new WordCounter(), new JavaSerializer<>());
 
@@ -179,6 +176,47 @@ int n = counter.<Integer>ask(new TallyCmd.Get("hello")).get(1, SECONDS);
 
 ---
 
+### 4. StateMachineActor (FSM)
+
+A finite state machine actor. Declare a state enum and implement `transition` — the runtime handles `onEnter`/`onExit` callbacks on every state change. `onEnter` is called for the initial state on startup.
+
+```java
+enum TrafficLight { RED, GREEN, YELLOW }
+
+Ref<String> fsm = system.spawnStateMachine("traffic",
+    new StateMachineActor<TrafficLight, String>() {
+        @Override
+        public Optional<TrafficLight> transition(TrafficLight state, String msg,
+                                                 BayouContext<String> ctx) {
+            return switch (msg) {
+                case "go"   -> state == RED    ? Optional.of(GREEN)  : Optional.empty();
+                case "slow" -> state == GREEN  ? Optional.of(YELLOW) : Optional.empty();
+                case "stop" -> state == YELLOW ? Optional.of(RED)    : Optional.empty();
+                default     -> Optional.empty(); // stay in current state
+            };
+        }
+
+        @Override
+        public void onEnter(TrafficLight state, BayouContext<String> ctx) {
+            ctx.logger().info("Entering {}", state);
+        }
+
+        @Override
+        public void onExit(TrafficLight state, BayouContext<String> ctx) {
+            ctx.logger().info("Leaving {}", state);
+        }
+    },
+    TrafficLight.RED); // initial state
+
+fsm.tell("go");   // RED → GREEN
+fsm.tell("slow"); // GREEN → YELLOW
+fsm.tell("stop"); // YELLOW → RED
+```
+
+Return `Optional.empty()` to stay in the current state — no callbacks fire. Return a new state to trigger `onExit(old)` + `onEnter(new)`.
+
+---
+
 ## Messaging
 
 | Method | Behaviour |
@@ -186,33 +224,178 @@ int n = counter.<Integer>ask(new TallyCmd.Get("hello")).get(1, SECONDS);
 | `ref.tell(msg)` | Fire-and-forget; message is queued and returns immediately |
 | `ref.ask(msg)` | Returns a `CompletableFuture<R>`; the actor must call `ctx.reply(value)` |
 | `ref.stop()` | Drains the mailbox, then stops; returns a future that completes on shutdown |
+| `ref.isAlive()` | Returns `true` if the actor is still running |
 
 ---
 
-## Serialization
+## Timers
 
-`BayouSerializer<T>` is the pluggable serialization interface:
+Schedule messages to self after a delay or on a recurring interval — equivalent to Erlang's `Process.send_after`:
 
 ```java
-public interface BayouSerializer<T> {
-    byte[] serialize(T value) throws IOException;
-    T deserialize(byte[] bytes) throws IOException;
-}
+system.spawn("reminder", new Actor<String>() {
+    private TimerRef periodic;
+
+    @Override
+    public void preStart(BayouContext<String> ctx) {
+        // One-shot: deliver "wake-up" after 5 seconds
+        ctx.scheduleOnce(Duration.ofSeconds(5), "wake-up");
+
+        // Recurring: deliver "tick" every second
+        periodic = ctx.schedulePeriodic(Duration.ofSeconds(1), "tick");
+    }
+
+    @Override
+    public void handle(String msg, BayouContext<String> ctx) {
+        if ("tick".equals(msg)) ctx.logger().info("tick");
+        if ("wake-up".equals(msg)) periodic.cancel(); // stop the recurring timer
+    }
+});
 ```
 
-`JavaSerializer<T extends Serializable>` ships as a ready-made default. For production, implement the interface with Kryo, Protobuf, or any other format.
+- `ctx.scheduleOnce(Duration, M)` → `TimerRef` — fires once
+- `ctx.schedulePeriodic(Duration, M)` → `TimerRef` — fires repeatedly until cancelled or actor stops
+- `TimerRef.cancel()` — cancels a pending or recurring timer; idempotent
+- All active timers are automatically cancelled when an actor stops
 
 ---
 
-## How gumbo is used
+## Death Watch & Linking
 
-| Flavour | Gumbo tag | Write path | Read path |
-|---|---|---|---|
-| `Actor` | — | never | never |
-| `EventSourcedActor` | `bayou.events:<id>` | one append per emitted event | full replay on startup |
-| `StatefulActor` | `bayou.snapshots:<id>` | one append every N messages + on stop | latest entry on startup |
+### Death Watch
 
-Tags follow gumbo's namespace+key convention: `LogTag.of("bayou.events", actorId)`. Multiple actors coexist in the same physical log; each has its own scoped `LogView`.
+Watch another actor for termination — receive a `Terminated` signal when it stops (crash or graceful):
+
+```java
+system.spawn("monitor", new Actor<String>() {
+    @Override
+    public void preStart(BayouContext<String> ctx) {
+        Ref<String> target = ctx.system().lookup("worker").orElseThrow();
+        ctx.watch(target); // or system.watch(target, monitorRef)
+    }
+
+    @Override
+    public void onSignal(Signal signal, BayouContext<String> ctx) {
+        if (signal instanceof Terminated t) {
+            ctx.logger().info("Actor '{}' has stopped", t.actorId());
+        }
+    }
+});
+```
+
+Use `ctx.unwatch(handle)` (or `system.unwatch(handle)`) with the returned `WatchHandle` to cancel a watch.
+
+### Linking
+
+Link two actors bidirectionally — if either dies, the other receives a `LinkedActorDied` signal and crashes unless it traps exits:
+
+```java
+// From within an actor:
+ctx.link(otherRef);   // bidirectional link
+ctx.unlink(otherRef); // remove it
+
+// Or from outside:
+system.link(refA, refB);
+system.unlink(refA, refB);
+```
+
+### Trapping exits
+
+Convert incoming exit signals into deliverable signals instead of crashing:
+
+```java
+system.spawn("resilient", new Actor<String>() {
+    @Override
+    public void preStart(BayouContext<String> ctx) {
+        ctx.trapExits(true);
+        ctx.link(partnerRef);
+    }
+
+    @Override
+    public void onSignal(Signal signal, BayouContext<String> ctx) {
+        if (signal instanceof LinkedActorDied lad) {
+            ctx.logger().warn("Partner '{}' died: {}", lad.actorId(), lad.cause());
+            // actor survives; handle the failure here
+        }
+    }
+});
+```
+
+---
+
+## Back-pressure
+
+Protect actors from runaway producers with bounded mailboxes:
+
+```java
+// Drop incoming messages when mailbox is full (default strategy)
+Ref<String> actor = system.spawn("bounded",
+        (msg, ctx) -> process(msg),
+        MailboxConfig.bounded(100));
+
+// Explicit overflow strategy
+MailboxConfig config = MailboxConfig.bounded(100, OverflowStrategy.DROP_OLDEST);
+
+// With observability hook
+MailboxConfig config = MailboxConfig.bounded(100, OverflowStrategy.REJECT,
+        (actorId, capacity, strategy) ->
+            metrics.increment("mailbox.overflow", actorId));
+```
+
+**Overflow strategies:**
+
+| Strategy | Behaviour when full |
+|---|---|
+| `DROP_NEWEST` | Silently discard the incoming message (default) |
+| `DROP_OLDEST` | Remove the oldest queued message, enqueue the new one |
+| `REJECT` | Throw `MailboxFullException` from `tell()` |
+
+Supervised children also support bounded mailboxes via the `withMailbox` builder:
+
+```java
+ChildSpec.stateless("worker", handler)
+         .withMailbox(MailboxConfig.bounded(50, OverflowStrategy.DROP_OLDEST))
+```
+
+All existing actors without a config use an unbounded mailbox — zero behaviour change.
+
+---
+
+## PubSub
+
+Topic-based publish/subscribe. One `BayouPubSub` registry per system, accessed via `system.pubsub()`:
+
+```java
+BayouPubSub pubsub = system.pubsub();
+
+// Subscribe
+Ref<String> subscriber = system.spawn("listener", (msg, ctx) -> handle(msg));
+pubsub.subscribe("events", subscriber);
+
+// Publish to all live subscribers
+pubsub.publish("events", "something happened");
+
+// Unsubscribe
+pubsub.unsubscribe("events", subscriber);
+```
+
+Actors can subscribe themselves from within `preStart` using `ctx.self()`:
+
+```java
+system.spawn("self-subscriber", new Actor<String>() {
+    @Override
+    public void preStart(BayouContext<String> ctx) {
+        ctx.system().pubsub().subscribe("news", ctx.self());
+    }
+
+    @Override
+    public void handle(String msg, BayouContext<String> ctx) {
+        ctx.logger().info("News: {}", msg);
+    }
+});
+```
+
+Dead actor references are silently skipped on publish and lazily cleaned up. `MailboxFullException` from bounded actors is also silently swallowed — PubSub is best-effort delivery.
 
 ---
 
@@ -223,8 +406,6 @@ react to their crashes — restarting, stopping, or escalating — so transient 
 recovered automatically without any application-level error handling.
 
 ### Basic supervisor
-
-Use `spawnSupervisor()` with a `SupervisorActor` that declares the children and the strategy:
 
 ```java
 SupervisorRef ref = system.spawnSupervisor("my-supervisor", new SupervisorActor() {
@@ -245,11 +426,9 @@ SupervisorRef ref = system.spawnSupervisor("my-supervisor", new SupervisorActor(
 });
 ```
 
-`SupervisorRef` extends `Ref<Void>` — supervisors don't accept user messages. Use `ref.stop()` to stop the supervisor and all its children.
+`SupervisorRef` extends `Ref<Void>` — supervisors don't accept user messages.
 
 ### Supervision strategies
-
-Two built-in strategies:
 
 | Strategy | Behaviour on crash |
 |---|---|
@@ -258,43 +437,32 @@ Two built-in strategies:
 
 ### Restart window and death spiral guard
 
-A `RestartWindow` limits how many times a child can crash within a rolling time window before
-the supervisor gives up and escalates:
-
 ```java
-// Restart up to 5 times within 60 seconds, then escalate:
+// Restart up to 5 times within 60 seconds, then escalate
 new OneForOneStrategy(new RestartWindow(5, Duration.ofSeconds(60)))
 
-// Always restart — no limit:
+// Always restart — no limit
 new OneForOneStrategy(RestartWindow.UNLIMITED)
 ```
 
-When the window is exceeded the supervisor escalates: it treats itself as crashed and fires a
-crash signal to its own parent. A top-level supervisor (no parent) logs a critical error and
-stops gracefully.
+When the window is exceeded the supervisor escalates to its own parent. A top-level supervisor logs a critical error and stops gracefully.
 
-### Custom strategies and RestartDecision
+### Custom strategies
 
-`SupervisionStrategy` is a functional interface — pass a lambda for one-off decisions:
+`SupervisionStrategy` is a functional interface:
 
 ```java
-// Always stop the crashed child; never restart
 SupervisionStrategy stopAll = (childId, cause) -> RestartDecision.STOP;
 ```
 
-The four `RestartDecision` values:
-
 | Decision | Meaning |
 |---|---|
-| `RESTART` | Restart only the crashed child (one-for-one) |
-| `RESTART_ALL` | Stop all children then restart all (all-for-one) |
-| `STOP` | Permanently stop the crashed child; no restart |
-| `ESCALATE` | Propagate failure up the supervision tree |
+| `RESTART` | Restart only the crashed child |
+| `RESTART_ALL` | Stop all children then restart all |
+| `STOP` | Permanently stop the crashed child |
+| `ESCALATE` | Propagate failure up the tree |
 
 ### Dynamic child spawning
-
-`children()` defaults to an empty list — implement only `strategy()` for supervisors that
-add children at runtime:
 
 ```java
 SupervisorRef sup = system.spawnSupervisor("router", new SupervisorActor() {
@@ -304,16 +472,11 @@ SupervisorRef sup = system.spawnSupervisor("router", new SupervisorActor() {
     }
 });
 
-// Add children from any thread after the supervisor is alive
 sup.spawnChild(ChildSpec.stateless("worker-1", handler));
 sup.spawnChild(ChildSpec.stateless("worker-2", handler));
 ```
 
 ### Nested supervisors
-
-`ChildSpec.supervisor()` embeds a supervisor as a child, forming a multi-level tree. Escalation
-propagates up: when a child supervisor exhausts its restart window it becomes a crash in the
-parent supervisor's mailbox.
 
 ```java
 system.spawnSupervisor("root", new SupervisorActor() {
@@ -342,8 +505,29 @@ system.spawnSupervisor("root", new SupervisorActor() {
 });
 ```
 
-### Stateful and event-sourced restart semantics
+---
 
-Supervised stateful actors restore their last snapshot on restart. Supervised event-sourced actors
-replay their full event log. No extra configuration is needed — restart calls `initialize()` on the
-runner, which reads from the shared log automatically.
+## Serialization
+
+`BayouSerializer<T>` is the pluggable serialization interface:
+
+```java
+public interface BayouSerializer<T> {
+    byte[] serialize(T value) throws IOException;
+    T deserialize(byte[] bytes) throws IOException;
+}
+```
+
+`JavaSerializer<T extends Serializable>` ships as a ready-made default. For production, implement the interface with Kryo, Protobuf, or any other format.
+
+---
+
+## How gumbo is used
+
+| Flavour | Gumbo tag | Write path | Read path |
+|---|---|---|---|
+| `Actor` / `StateMachineActor` | — | never | never |
+| `EventSourcedActor` | `bayou.events:<id>` | one append per emitted event | full replay on startup |
+| `StatefulActor` | `bayou.snapshots:<id>` | one append every N messages + on stop | latest entry on startup |
+
+Tags follow gumbo's namespace+key convention: `LogTag.of("bayou.events", actorId)`. Multiple actors coexist in the same physical log; each has its own scoped `LogView`.
