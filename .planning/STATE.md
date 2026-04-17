@@ -26,6 +26,12 @@ Phase 7 complete — 2026-04-17
 
 ## Accumulated Decisions
 
+- `Signal` sealed interface (`Terminated`, `LinkedActorDied`) — signals share actor mailbox via `Envelope.signal()` factory; FIFO preserved
+- `signalListeners` (CopyOnWriteArrayList) in AbstractActorRunner; `Terminated` fires in `finally` for both crash and graceful stop
+- `BayouSystem.runners` map added alongside `actors` — package-private runner lookup without casting; all `spawn*()` populate it
+- `handleSignal()` non-abstract default (no-op) in AbstractActorRunner — SupervisorRunner inherits it; 3 actor runners override it
+- Actor crashes in handler (`handle()` throws) do NOT set `terminalCause` — `StatelessActorRunner.processEnvelope` swallows all exceptions via try-catch; only `initialize()`/`preStart()` exceptions propagate as terminal
+
 - `BayouContext<M>` is now generic — enables type-safe `scheduleOnce(Duration, M)` / `schedulePeriodic(Duration, M)` without casts; lambda actors unaffected
 - Timer delivery via `runner.tell(message)` directly — bypasses `Ref` layer; context holds `AbstractActorRunner<M> runner` field set in constructor via `setRunner(this)`
 - Active timers tracked in `AbstractActorRunner.activeTimers` (ConcurrentHashMap key set); cancelled in `finally` block before `cleanup()` on actor stop
@@ -59,4 +65,4 @@ Phase 7 complete — 2026-04-17
 
 ## Active Plan
 
-Phase 8, Plan 1: Signal Infrastructure & Death Watch — `08-01-PLAN.md`
+Phase 8, Plan 2: Linking & trapExits — `08-02-PLAN.md`
