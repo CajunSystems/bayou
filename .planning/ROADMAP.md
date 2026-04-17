@@ -165,7 +165,7 @@ Add core Erlang/Elixir ecosystem primitives to Bayou. Five phases delivering tim
 
 ---
 
-### Phase 11: GenStateMachine / FSM *(1 plan)*
+### ~~Phase 11: GenStateMachine / FSM~~ ✓ Complete (1 plan)
 **Goal:** Finite state machine behavior — actors declare states and transitions; the framework manages state and fires callbacks.
 
 - `StateMachineActor<S extends Enum<S>, M>` interface — generic over a state enum and message type

@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 11: GenStateMachine / FSM** — in progress (1 plan ready)
+**Phase 11: GenStateMachine / FSM** — complete
 
 ## Phase Status
 
@@ -18,11 +18,11 @@
 | 8 — Death Watch & Linking | complete | 08-01-SUMMARY.md, 08-02-SUMMARY.md |
 | 9 — Back-pressure | complete | 09-01-SUMMARY.md |
 | 10 — PubSub / Process Groups | complete | 10-01-SUMMARY.md |
-| 11 — GenStateMachine / FSM | in progress | 11-01-PLAN.md ready |
+| 11 — GenStateMachine / FSM | complete | 11-01-SUMMARY.md |
 
 ## Last Action
 
-Phase 11 plan created — 2026-04-17
+Phase 11 complete — 2026-04-17
 
 ## Accumulated Decisions
 
@@ -75,6 +75,10 @@ Phase 11 plan created — 2026-04-17
 - `ctx.self()` returns `Ref<M>` via `runner.toRef()` — enables type-safe in-actor PubSub subscription from `preStart`/`handle`
 - `BayouSystem.pubsub()` — single `BayouPubSub` instance per system, initialized eagerly as field
 
+- `StateMachineActor<S, M>` in `actor/` package — `transition(S, M, BayouContext<M>)` returns `Optional<S>`; `onEnter`/`onExit` callbacks; `onEnter` fires for initial state in `initialize()`
+- `StateMachineActorRunner` tracks `currentState`; `onExit(old)` + `onEnter(new)` fire on real transitions; callback exceptions swallowed via `onError`; actor NOT crashed by callback errors
+- `BayouSystem.spawnStateMachine(id, actor, initialState)` + `...MailboxConfig` overload — consistent with all other spawn patterns
+
 ## Active Plan
 
-`.planning/phases/11-gen-state-machine/11-01-PLAN.md` — ready to execute.
+None — Milestone 2 complete.
