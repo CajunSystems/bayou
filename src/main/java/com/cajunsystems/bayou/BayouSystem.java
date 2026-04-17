@@ -223,7 +223,8 @@ public class BayouSystem implements AutoCloseable {
                                         BayouSerializer<S> stateSerializer,
                                         int snapshotInterval,
                                         MailboxConfig mailboxConfig) {
-        if (snapshotInterval <= 0) throw new IllegalArgumentException("snapshotInterval must be > 0");
+        if (snapshotInterval <= 0) throw new IllegalArgumentException(
+            "snapshotInterval must be > 0, got: " + snapshotInterval);
         checkNotDuplicate(actorId);
         var runner = new StatefulActorRunner<>(actorId, this, actor, stateSerializer, snapshotInterval, mailboxConfig);
         runner.start();
@@ -432,7 +433,9 @@ public class BayouSystem implements AutoCloseable {
 
     private void checkNotDuplicate(String actorId) {
         if (actors.containsKey(actorId)) {
-            throw new IllegalArgumentException("Actor already registered with id: " + actorId);
+            throw new IllegalArgumentException(
+                "Cannot spawn actor '" + actorId + "': an actor with this ID is already alive. " +
+                "Stop the existing actor first (ref.stop()) or use a unique ID.");
         }
     }
 }

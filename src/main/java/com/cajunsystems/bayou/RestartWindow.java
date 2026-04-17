@@ -19,7 +19,8 @@ public record RestartWindow(int maxRestarts, Duration within) {
     public static final RestartWindow UNLIMITED = new RestartWindow(Integer.MAX_VALUE, Duration.ZERO);
 
     public RestartWindow {
-        if (maxRestarts < 0) throw new IllegalArgumentException("maxRestarts must be >= 0");
+        if (maxRestarts < 0) throw new IllegalArgumentException(
+            "maxRestarts must be >= 0, got: " + maxRestarts);
         if (within == null)  throw new IllegalArgumentException("within must not be null");
     }
 }
