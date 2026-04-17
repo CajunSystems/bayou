@@ -42,4 +42,20 @@ public final class BayouTopic<M> {
     public void unsubscribe(Ref<M> subscriber) {
         actorRef.tell(new TopicCommand.Unsubscribe<>(subscriber));
     }
+
+    /**
+     * Register a durable subscriber. On reconnect (same {@code subscriptionId}), all messages
+     * published since the last delivery are replayed before live delivery resumes.
+     */
+    public void subscribe(String subscriptionId, Ref<M> subscriber) {
+        actorRef.tell(new TopicCommand.SubscribeDurable<>(subscriptionId, subscriber));
+    }
+
+    /**
+     * Cancel a durable subscription and permanently forget its stored position.
+     * A subsequent {@link #subscribe(String, Ref)} with the same ID starts fresh from now.
+     */
+    public void unsubscribeDurable(String subscriptionId) {
+        actorRef.tell(new TopicCommand.UnsubscribeDurable<>(subscriptionId));
+    }
 }

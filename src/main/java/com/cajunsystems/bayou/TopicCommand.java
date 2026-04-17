@@ -17,4 +17,10 @@ sealed interface TopicCommand<M> {
 
     /** Remove {@code subscriber} from the live-delivery list. */
     record Unsubscribe<M>(Ref<M> subscriber) implements TopicCommand<M> {}
+
+    /** Register a durable subscriber that resumes from its last processed offset. */
+    record SubscribeDurable<M>(String subscriptionId, Ref<M> subscriber) implements TopicCommand<M> {}
+
+    /** Cancel a durable subscription and forget its stored position. */
+    record UnsubscribeDurable<M>(String subscriptionId) implements TopicCommand<M> {}
 }
